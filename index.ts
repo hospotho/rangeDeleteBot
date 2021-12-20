@@ -1,4 +1,4 @@
-import DiscordJS, {Intents, Message, TextChannel} from 'discord.js'
+import DiscordJS, {Intents, Message, TextChannel, Permissions} from 'discord.js'
 import dotenv from 'dotenv'
 dotenv.config()
 const prefix = '!!'
@@ -76,7 +76,7 @@ client.on('messageCreate', message => {
     if (!message.guild) return
     // check permissions
     if (message.author.id !== message.guild.ownerId) {
-      if (message.member.permissions.missing('MANAGE_MESSAGES')) {
+      if (message.member.permissions.missing(Permissions.FLAGS.MANAGE_MESSAGES)) {
         console.log('permission denied')
         return
       }
