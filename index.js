@@ -41,6 +41,11 @@ const client = new discord_js_1.default.Client({
 client.on('ready', () => {
     console.log('The bot is ready.');
 });
+function msToMinSec(ms) {
+    let min = Math.floor(ms / 60000);
+    let sec = Math.floor((ms % 60000) / 1000);
+    return (min > 0 ? min + 'm' : '') + (sec < 10 && min > 0 ? '0' : '') + sec + 's';
+}
 function rangedelete(message) {
     return __awaiter(this, void 0, void 0, function* () {
         function fetch(id, channel = message.channel) {
@@ -89,20 +94,22 @@ function rangedelete(message) {
             return;
         }
         let botMsg = yield message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
+            console.log('range delete start');
             return sent;
         });
+        let startTime = Date.now();
         yield message.channel.send(`<:gbf_makira_gun:685481376400932895>`);
         let msgs = yield msg1.channel.messages.fetch({
             after: msg1.id,
-            limit: 99
+            limit: 49
         });
-        yield msg1.delete();
         msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
         msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+        yield msg1.delete();
         let count = 1;
         count += (yield Promise.all(msgs.map(m => m.delete()))).length;
-        yield botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`));
         while (!msgs.has(msg2.id)) {
+            yield botMsg.edit(`Still deleting, ${count} messages deleted so far`).then(() => console.log(`${count} messages deleted`));
             let amount, tmp = msgs.lastKey();
             msgs = yield msg1.channel.messages.fetch({
                 after: tmp
@@ -110,9 +117,12 @@ function rangedelete(message) {
             msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
             msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             count += (yield Promise.all(msgs.map(m => m.delete()))).length;
-            yield botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`));
         }
-        yield botMsg.edit(`Complete, ${count} messages deleted.`).then(() => console.log('rangedelete success'));
+        let timeCost = msToMinSec(Date.now() - startTime);
+        yield botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`).then(() => {
+            console.log(`${count} messages deleted`);
+            console.log('range delete success');
+        });
     });
 }
 client.on('messageCreate', message => {

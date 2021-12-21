@@ -10,6 +10,12 @@ client.on('ready', () => {
   console.log('The bot is ready.')
 })
 
+function msToMinSec(ms: number) {
+  let min = Math.floor(ms / 60000)
+  let sec = Math.floor((ms % 60000) / 1000)
+  return (min > 0 ? min + 'm' : '') + (sec < 10 && min > 0 ? '0' : '') + sec + 's'
+}
+
 async function rangedelete(message: Message) {
   async function fetch(id: string, channel: TextChannel = message.channel as TextChannel): Promise<Message | undefined> {
     try {
@@ -56,21 +62,23 @@ async function rangedelete(message: Message) {
   }
 
   let botMsg = await message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
+    console.log('range delete start')
     return sent
   })
+  let startTime = Date.now()
   await message.channel.send(`<:gbf_makira_gun:685481376400932895>`)
   let msgs = await msg1.channel.messages.fetch({
     after: msg1.id,
-    limit: 99
+    limit: 49
   })
-  await msg1.delete()
   msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
   msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+  await msg1.delete()
   let count = 1
   count += (await Promise.all(msgs.map(m => m.delete()))).length
-  await botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`))
 
   while (!msgs.has(msg2.id)) {
+    await botMsg.edit(`Still deleting, ${count} messages deleted so far`).then(() => console.log(`${count} messages deleted`))
     let amount,
       tmp = msgs.lastKey()
     msgs = await msg1.channel.messages.fetch({
@@ -79,10 +87,13 @@ async function rangedelete(message: Message) {
     msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
     msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     count += (await Promise.all(msgs.map(m => m.delete()))).length
-    await botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`))
   }
 
-  await botMsg.edit(`Complete, ${count} messages deleted.`).then(() => console.log('rangedelete success'))
+  let timeCost = msToMinSec(Date.now() - startTime)
+  await botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`).then(() => {
+    console.log(`${count} messages deleted`)
+    console.log('range delete success')
+  })
 }
 
 client.on('messageCreate', message => {
