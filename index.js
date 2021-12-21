@@ -101,7 +101,7 @@ function rangedelete(message) {
         msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
         let count = 1;
         count += (yield Promise.all(msgs.map(m => m.delete()))).length;
-        yield botMsg.edit(`${count} messages deleted.`);
+        yield botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`));
         while (!msgs.has(msg2.id)) {
             let amount, tmp = msgs.lastKey();
             msgs = yield msg1.channel.messages.fetch({
@@ -110,9 +110,9 @@ function rangedelete(message) {
             msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
             msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             count += (yield Promise.all(msgs.map(m => m.delete()))).length;
-            yield botMsg.edit(`${count} messages deleted.`);
+            yield botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`));
         }
-        yield botMsg.edit(`Complete, ${count} messages deleted.`);
+        yield botMsg.edit(`Complete, ${count} messages deleted.`).then(() => console.log('rangedelete success'));
     });
 }
 client.on('messageCreate', message => {
@@ -138,7 +138,6 @@ client.on('messageCreate', message => {
             return;
         }
         rangedelete(message);
-        console.log('rangedelete success');
         return;
     }
 });

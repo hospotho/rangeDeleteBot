@@ -54,6 +54,7 @@ async function rangedelete(message: Message) {
     message.channel.send(`Messages need to be in same channel.`)
     return
   }
+
   let botMsg = await message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
     return sent
   })
@@ -67,7 +68,8 @@ async function rangedelete(message: Message) {
   msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
   let count = 1
   count += (await Promise.all(msgs.map(m => m.delete()))).length
-  await botMsg.edit(`${count} messages deleted.`)
+  await botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`))
+
   while (!msgs.has(msg2.id)) {
     let amount,
       tmp = msgs.lastKey()
@@ -77,9 +79,10 @@ async function rangedelete(message: Message) {
     msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
     msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     count += (await Promise.all(msgs.map(m => m.delete()))).length
-    await botMsg.edit(`${count} messages deleted.`)
+    await botMsg.edit(`${count} messages deleted.`).then(() => console.log(`${count} messages deleted.`))
   }
-  await botMsg.edit(`Complete, ${count} messages deleted.`)
+
+  await botMsg.edit(`Complete, ${count} messages deleted.`).then(() => console.log('rangedelete success'))
 }
 
 client.on('messageCreate', message => {
@@ -104,7 +107,6 @@ client.on('messageCreate', message => {
       return
     }
     rangedelete(message)
-    console.log('rangedelete success')
     return
   }
 })
