@@ -58,6 +58,7 @@ async function rangedelete(message: Message) {
   let msgs = await msg1.channel.messages.fetch({
     after: msg1.id
   })
+  console.log(msgs)
   msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
   message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`)
   message.channel.send(`<:gbf_makira_gun:685481376400932895>`)
