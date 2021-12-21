@@ -63,8 +63,8 @@ async function rangedelete(message: Message) {
   await msg1.delete()
   msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
   let count = (await Promise.all(msgs.map(m => m.delete()))).length + 1
-  while(!msgs.has(msg2.id)){
-    msgs = msgs.sort((a, b) => a.createdTimestamp  - b.createdTimestamp )
+  while (!msgs.has(msg2.id)) {
+    msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     let tmp, amount = msgs.lastKey()
     msgs = await msg1.channel.messages.fetch({
       after: tmp
@@ -85,7 +85,7 @@ client.on('messageCreate', message => {
     if (!message.guild) return
     // check permissions
     if (message.author.id !== message.guild.ownerId) {
-      if (!message.member.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)) {
+      if (!message.member.permissionsIn(message.channel as TextChannel).has(DiscordJS.Permissions.FLAGS.MANAGE_MESSAGES)) {
         console.log('permission denied')
         return
       }

@@ -119,7 +119,7 @@ client.on('messageCreate', message => {
             return;
         // check permissions
         if (message.author.id !== message.guild.ownerId) {
-            if (!message.member.permissions.has(discord_js_1.Permissions.FLAGS.MANAGE_MESSAGES)) {
+            if (!message.member.permissionsIn(message.channel).has(discord_js_1.default.Permissions.FLAGS.MANAGE_MESSAGES)) {
                 console.log('permission denied');
                 return;
             }
