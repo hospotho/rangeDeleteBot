@@ -93,7 +93,7 @@ function rangedelete(message) {
         });
         msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
         message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`);
-        message.channel.send(`:gbf_makira_gun:`);
+        message.channel.send(`<:gbf_makira_gun:685481376400932895>`);
         yield msg1.delete();
         const count = (yield Promise.all(msgs.map(m => m.delete()))).length + 1;
         yield message.channel.send(`${count} messages deleted.`);
