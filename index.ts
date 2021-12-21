@@ -76,7 +76,7 @@ client.on('messageCreate', message => {
     if (!message.guild) return
     // check permissions
     if (message.author.id !== message.guild.ownerId) {
-      if (message.member.permissions.missing(Permissions.FLAGS.MANAGE_MESSAGES)) {
+      if (!message.member.permissions.has(Permissions.FLAGS.MANAGE_MESSAGES)) {
         console.log('permission denied')
         return
       }
