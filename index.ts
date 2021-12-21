@@ -54,9 +54,10 @@ async function rangedelete(message: Message) {
     message.channel.send(`Messages need to be in same channel.`)
     return
   }
-
-  message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`)
-  message.channel.send(`<:gbf_makira_gun:685481376400932895>`)
+  let botMsg = await message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
+    return sent
+  })
+  await message.channel.send(`<:gbf_makira_gun:685481376400932895>`)
   let msgs = await msg1.channel.messages.fetch({
     after: msg1.id
   })
@@ -65,14 +66,15 @@ async function rangedelete(message: Message) {
   let count = (await Promise.all(msgs.map(m => m.delete()))).length + 1
   while (!msgs.has(msg2.id)) {
     msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-    let tmp, amount = msgs.lastKey()
+    let tmp,
+      amount = msgs.lastKey()
     msgs = await msg1.channel.messages.fetch({
       after: tmp
     })
     msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
     count += (await Promise.all(msgs.map(m => m.delete()))).length
   }
-  await message.channel.send(`${count} messages deleted.`)
+  await botMsg.edit(`${count} messages deleted.`)
 }
 
 client.on('messageCreate', message => {

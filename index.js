@@ -88,8 +88,10 @@ function rangedelete(message) {
             message.channel.send(`Messages need to be in same channel.`);
             return;
         }
-        message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`);
-        message.channel.send(`<:gbf_makira_gun:685481376400932895>`);
+        let botMsg = yield message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
+            return sent;
+        });
+        yield message.channel.send(`<:gbf_makira_gun:685481376400932895>`);
         let msgs = yield msg1.channel.messages.fetch({
             after: msg1.id
         });
@@ -105,7 +107,7 @@ function rangedelete(message) {
             msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
             count += (yield Promise.all(msgs.map(m => m.delete()))).length;
         }
-        yield message.channel.send(`${count} messages deleted.`);
+        yield botMsg.edit(`${count} messages deleted.`);
     });
 }
 client.on('messageCreate', message => {
