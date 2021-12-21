@@ -59,22 +59,27 @@ async function rangedelete(message: Message) {
   })
   await message.channel.send(`<:gbf_makira_gun:685481376400932895>`)
   let msgs = await msg1.channel.messages.fetch({
-    after: msg1.id
+    after: msg1.id,
+    limit: 99
   })
   await msg1.delete()
   msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
-  let count = (await Promise.all(msgs.map(m => m.delete()))).length + 1
+  msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+  let count = 1
+  count += (await Promise.all(msgs.map(m => m.delete()))).length
+  await botMsg.edit(`${count} messages deleted.`)
   while (!msgs.has(msg2.id)) {
-    msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-    let tmp,
-      amount = msgs.lastKey()
+    let amount,
+      tmp = msgs.lastKey()
     msgs = await msg1.channel.messages.fetch({
       after: tmp
     })
     msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp)
+    msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     count += (await Promise.all(msgs.map(m => m.delete()))).length
+    await botMsg.edit(`${count} messages deleted.`)
   }
-  await botMsg.edit(`${count} messages deleted.`)
+  await botMsg.edit(`Complete, ${count} messages deleted.`)
 }
 
 client.on('messageCreate', message => {
@@ -99,6 +104,7 @@ client.on('messageCreate', message => {
       return
     }
     rangedelete(message)
+    console.log('rangedelete success')
     return
   }
 })

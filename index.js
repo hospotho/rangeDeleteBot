@@ -93,21 +93,26 @@ function rangedelete(message) {
         });
         yield message.channel.send(`<:gbf_makira_gun:685481376400932895>`);
         let msgs = yield msg1.channel.messages.fetch({
-            after: msg1.id
+            after: msg1.id,
+            limit: 99
         });
         yield msg1.delete();
         msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
-        let count = (yield Promise.all(msgs.map(m => m.delete()))).length + 1;
+        msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+        let count = 1;
+        count += (yield Promise.all(msgs.map(m => m.delete()))).length;
+        yield botMsg.edit(`${count} messages deleted.`);
         while (!msgs.has(msg2.id)) {
-            msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-            let tmp, amount = msgs.lastKey();
+            let amount, tmp = msgs.lastKey();
             msgs = yield msg1.channel.messages.fetch({
                 after: tmp
             });
             msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
+            msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
             count += (yield Promise.all(msgs.map(m => m.delete()))).length;
+            yield botMsg.edit(`${count} messages deleted.`);
         }
-        yield botMsg.edit(`${count} messages deleted.`);
+        yield botMsg.edit(`Complete, ${count} messages deleted.`);
     });
 }
 client.on('messageCreate', message => {
@@ -133,7 +138,9 @@ client.on('messageCreate', message => {
             return;
         }
         rangedelete(message);
+        console.log('rangedelete success');
         return;
     }
 });
 client.login(process.env.TOKEN);
+//# sourceMappingURL=index.js.map
