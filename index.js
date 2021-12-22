@@ -48,6 +48,17 @@ function msToMinSec(ms) {
 }
 function rangedelete(message) {
     return __awaiter(this, void 0, void 0, function* () {
+        if (!message.member || message.channel.type == 'DM')
+            return;
+        const args = message.content.split(' ');
+        if (args[1] === args[2]) {
+            message.channel.send(`MessageID(1) and MessageID(2) should not be the same.`);
+            return;
+        }
+        if (parseInt(args[1]) > parseInt(args[2])) {
+            message.channel.send(`Message(1) is newer than Message(2).`);
+            return;
+        }
         function fetch(id, channel = message.channel) {
             return __awaiter(this, void 0, void 0, function* () {
                 try {
@@ -70,15 +81,6 @@ function rangedelete(message) {
                 }
             });
         }
-        const args = message.content.split(' ');
-        if (args[1] === args[2]) {
-            message.channel.send(`MessageID(1) and MessageID(2) should not be the same.`);
-            return;
-        }
-        if (parseInt(args[1]) > parseInt(args[2])) {
-            message.channel.send(`Message(1) is newer than Message(2).`);
-            return;
-        }
         const msg1 = yield fetch(args[1]);
         if (!msg1) {
             message.channel.send(`Message(1) ${args[1]} not found.`);
@@ -93,35 +95,35 @@ function rangedelete(message) {
             message.channel.send(`Messages need to be in same channel.`);
             return;
         }
+        let startTime = Date.now();
         let botMsg = yield message.channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
-            console.log('range delete start');
             return sent;
         });
-        let startTime = Date.now();
+        console.log(`range delete start by ${message.author.username} at #${message.channel.name} id: ${message.id}`);
         yield message.channel.send(`<:gbf_makira_gun:685481376400932895>`);
         let msgs = yield msg1.channel.messages.fetch({
             after: msg1.id,
-            limit: 49
+            limit: 99
         });
         msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
         msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
         yield msg1.delete();
         let count = 1;
-        count += (yield Promise.all(msgs.map(m => m.delete()))).length;
+        yield message.channel.bulkDelete(msgs).then(msg => (count += msg.size));
         while (!msgs.has(msg2.id)) {
             yield botMsg.edit(`Still deleting, ${count} messages deleted so far`).then(() => console.log(`${count} messages deleted`));
-            let amount, tmp = msgs.lastKey();
+            let tmp = msgs.lastKey();
             msgs = yield msg1.channel.messages.fetch({
-                after: tmp
+                after: tmp,
+                limit: 100
             });
             msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
             msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-            count += (yield Promise.all(msgs.map(m => m.delete()))).length;
+            yield message.channel.bulkDelete(msgs).then(msg => (count += msg.size));
         }
         let timeCost = msToMinSec(Date.now() - startTime);
         yield botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`).then(() => {
-            console.log(`${count} messages deleted`);
-            console.log('range delete success');
+            console.log(`Complete, ${count} messages deleted in ${timeCost} id: ${message.id}`);
         });
     });
 }
@@ -136,7 +138,8 @@ client.on('messageCreate', message => {
             return;
         // check permissions
         if (message.author.id !== message.guild.ownerId) {
-            if (!message.member.permissionsIn(message.channel).has(discord_js_1.default.Permissions.FLAGS.MANAGE_MESSAGES)) {
+            if (!message.member.permissionsIn(message.channel).has(discord_js_1.default.Permissions.FLAGS.MANAGE_MESSAGES) ||
+                message.author.bot) {
                 console.log('permission denied');
                 return;
             }
