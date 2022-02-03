@@ -35,7 +35,7 @@ const discord_js_1 = __importStar(require("discord.js"));
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const prefix = '!!';
-var debug = false;
+var checkerFlag = false;
 const client = new discord_js_1.default.Client({
     intents: [discord_js_1.Intents.FLAGS.GUILDS, discord_js_1.Intents.FLAGS.GUILD_MESSAGES]
 });
@@ -57,7 +57,15 @@ class logStack {
         this.logs = [];
     }
 }
+class dataPool {
+    constructor() {
+        this.link = [];
+        this.title = [];
+        this.info = [];
+    }
+}
 var logger = new logStack();
+var checkerData = new dataPool();
 client.on('ready', () => {
     logger.logging('The bot is ready.');
 });
@@ -148,6 +156,125 @@ function rangedelete(msg) {
         });
     });
 }
+function displayChecker(channel, data) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var content = '';
+        for (var i = 0; i < data.link.length; i++) {
+            content += `[${data.title[i]}](${data.link[i]})\n`;
+        }
+        const embed = new discord_js_1.MessageEmbed().addFields({ name: 'List', value: content });
+        channel.send({
+            embeds: [embed]
+        });
+    });
+}
+function checker() {
+    return __awaiter(this, void 0, void 0, function* () {
+        function getShopList() {
+            return __awaiter(this, void 0, void 0, function* () {
+                const searchPage = [
+                    'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
+                    'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
+                ];
+                const conditions = ['代抽', '代練', '共鬥', '肝弟'];
+                var shopTitleList = [];
+                var shopLinkList = [];
+                for (const page of searchPage) {
+                    yield fetch(page)
+                        .then(res => res.text())
+                        .then(text => {
+                        const parser = new DOMParser();
+                        const page = parser.parseFromString(text, 'text/html');
+                        const eleList = page.querySelectorAll('#wrapper > .w-currency');
+                        eleList.forEach(el => {
+                            var a = el.querySelector('.c-title-line.c-title-head > a');
+                            if (a != null && a instanceof HTMLAnchorElement) {
+                                if (!shopTitleList.includes(a.title)) {
+                                    var flag = 1;
+                                    for (const str of conditions) {
+                                        if (a.title.indexOf(str) > -1)
+                                            flag = 0;
+                                    }
+                                    if (flag) {
+                                        shopTitleList.push(a.title);
+                                        shopLinkList.push(a.href);
+                                    }
+                                }
+                            }
+                        });
+                    });
+                }
+                return shopLinkList;
+                //console.log(shopTitleList)
+            });
+        }
+        function hashCode(str) {
+            var hash = 0;
+            if (str.length === 0)
+                return hash;
+            for (var i = 0; i < str.length; i++) {
+                hash = hash * 31 + str.charCodeAt(i);
+                hash |= 0; // Convert to 32bit integer
+            }
+            return hash;
+        }
+        function compare(current, old = checkerData) {
+            return __awaiter(this, void 0, void 0, function* () {
+                const channel = (yield client.channels.fetch('938732984973017129'));
+                if (channel == null)
+                    return;
+                if (old.link.length <= 0) {
+                    channel.send(`${current.link.length} shop found`);
+                    displayChecker(channel, current);
+                    return;
+                }
+                var content = '';
+                for (var i = 0; (i = current.link.length); i++) {
+                    if (!old.link.includes(current.link[i])) {
+                        content += `new shop\n[${current.title[i]}](${current.link[i]})\n`;
+                        break;
+                    }
+                    var oldIndex = old.link.indexOf(current.link[i]);
+                    if (current.title[i] != old.title[oldIndex]) {
+                        content += `title change\n[${old.title[oldIndex]}](${current.link[i]})  ->  [${current.title[i]}](${current.link[i]})\n`;
+                        break;
+                    }
+                    if (current.info[i] != old.info[oldIndex]) {
+                        content += `info change\n[${current.title[oldIndex]}](${current.link[i]})\n`;
+                    }
+                }
+                const embed = new discord_js_1.MessageEmbed().addFields({ name: 'List', value: content });
+                channel.send({
+                    embeds: [embed]
+                });
+            });
+        }
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        while (checkerFlag) {
+            const shopList = yield getShopList();
+            var currentData = new dataPool();
+            for (const link of shopList) {
+                yield fetch(link)
+                    .then(res => res.text())
+                    .then(text => {
+                    const parser = new DOMParser();
+                    const page = parser.parseFromString(text, 'text/html');
+                    const info = page.querySelector('#editer_main > div');
+                    if (info != null) {
+                        currentData.link.push(link);
+                        currentData.title.push(page.title);
+                        currentData.info.push(hashCode(info.innerHTML));
+                    }
+                });
+            }
+            yield compare(currentData);
+            checkerData = currentData;
+            yield sleep(300000);
+        }
+    });
+}
 client.on('messageCreate', message => {
     if (!message.content.startsWith(prefix))
         return;
@@ -188,9 +315,31 @@ client.on('messageCreate', message => {
             content: log
         });
     }
+    if (args[0].slice(2) === 'checker') {
+        if (message.guild.id != '923553217671987201') {
+            return;
+        }
+        if (args.length != 2) {
+            message.channel.send({
+                content: 'Invalid arguments count\nUsage:  !!check85  on/off'
+            });
+            return;
+        }
+        if (args[1] === 'on' && !checkerFlag) {
+            checkerFlag = true;
+            checkerData = new dataPool();
+            checker();
+        }
+        if (args[1] === 'off') {
+            checkerFlag = false;
+        }
+        if (args[1] === 'display') {
+            displayChecker(message.channel, checkerData);
+        }
+    }
     if (args[0].slice(2) === 'help') {
         message.channel.send({
-            content: '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs (Size)\n!!help`'
+            content: '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs (Size)\n!!checker (on/off/display)\n!!help`'
         });
     }
 });
