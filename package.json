@@ -1,16 +1,16 @@
 {
   "name": "rangedeletebot",
-  "version": "1.1.0",
-  "description": "",
+  "version": "1.0.0",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "author": "",
-  "license": "ISC",
+  "repository": "https://github.com/hospotho/rangeDeleteBot.git",
+  "author": "hospotho <a155268747@gmail.com>",
+  "license": "MIT",
   "dependencies": {
-    "discord.js": "^13.3.1",
-    "dotenv": "^10.0.0"
+    "@types/jsdom": "^16.2.14",
+    "discord.js": "^13.6.0",
+    "dotenv": "^16.0.0",
+    "jsdom": "^19.0.0",
+    "undici": "^4.13.0"
   },
   "engines": {
     "node": "16.x"

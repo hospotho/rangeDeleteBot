@@ -1,4 +1,7 @@
 import DiscordJS, {Intents, Message, TextChannel, Permissions, MessageEmbed} from 'discord.js'
+import undici from 'undici'
+import jsdom from 'jsdom'
+global.HTMLAnchorElement = new jsdom.JSDOM().window.HTMLAnchorElement
 import dotenv from 'dotenv'
 dotenv.config()
 const prefix = '!!'
@@ -136,53 +139,62 @@ async function rangedelete(msg: Message) {
 }
 
 async function displayChecker(channel: TextChannel, data: dataPool) {
+  const length = data.link.length
+  console.log(`Display data, length:  ${length}.`)
+  channel.send(`Display data, length:  ${length}.`)
+  for (var i = 0; i < length - (length % 5); i += 5) {
+    var content = ''
+    content += `[${data.title[i]}](${data.link[i]})\n`
+    content += `[${data.title[i + 1]}](${data.link[i + 1]})\n`
+    content += `[${data.title[i + 2]}](${data.link[i + 2]})\n`
+    content += `[${data.title[i + 3]}](${data.link[i + 3]})\n`
+    content += `[${data.title[i + 4]}](${data.link[i + 4]})\n`
+    const embed = new MessageEmbed().addFields({name: `${i + 1}-${i + 5}`, value: content})
+    channel.send({
+      embeds: [embed]
+    })
+  }
   var content = ''
-  for (var i = 0; i < data.link.length; i++) {
+  for (var i = Math.floor(length / 5) * 5; i < length; i++) {
     content += `[${data.title[i]}](${data.link[i]})\n`
   }
-  const embed = new MessageEmbed().addFields({name: 'List', value: content})
+  const embed = new MessageEmbed().addFields({name: `${Math.floor(length / 5) * 5 + 1}-${data.link.length}`, value: content})
   channel.send({
     embeds: [embed]
   })
 }
 
 async function checker() {
-  async function getShopList() {
-    const searchPage = [
-      'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
-      'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
-    ]
-    const conditions = ['代抽', '代練', '共鬥', '肝弟']
-    var shopTitleList: string[] = []
-    var shopLinkList: string[] = []
-    for (const page of searchPage) {
-      await fetch(page)
-        .then(res => res.text())
-        .then(text => {
-          const parser = new DOMParser()
-          const page = parser.parseFromString(text, 'text/html')
-          const eleList = page.querySelectorAll('#wrapper > .w-currency')
-          eleList.forEach(el => {
-            var a = el.querySelector('.c-title-line.c-title-head > a')
-            if (a != null && a instanceof HTMLAnchorElement) {
-              if (!shopTitleList.includes(a.title)) {
-                var flag = 1
-                for (const str of conditions) {
-                  if (a.title.indexOf(str) > -1) flag = 0
-                }
-                if (flag) {
-                  shopTitleList.push(a.title)
-                  shopLinkList.push(a.href)
-                }
-              }
-            }
-          })
-        })
-    }
-    return shopLinkList
-    //console.log(shopTitleList)
-  }
+  const searchPage = [
+    'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
+    'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
+  ]
+  const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟']
 
+  async function getShopList() {
+    const result: Array<string> = []
+    const titleList: Array<string> = []
+    for (const url of searchPage) {
+      const {body} = await undici.request(url)
+      const {window} = new jsdom.JSDOM(await body.text())
+      const shops = window.document.querySelectorAll('.w-currency')
+      shops.forEach(shop => {
+        const title = shop.querySelector('.c-title-line.c-title-head > a') as HTMLAnchorElement
+        if (title != null) {
+          if (titleList.indexOf(title.title) != -1) return
+          let flag = true
+          for (let text of conditions) {
+            if (title.title.includes(text)) flag = false
+          }
+          if (flag) {
+            result.push('https://www.8591.com.tw' + title.href.substring(1))
+            titleList.push(title.title)
+          }
+        }
+      })
+    }
+    return result
+  }
   function hashCode(str: string): number {
     var hash = 0
     if (str.length === 0) return hash
@@ -192,61 +204,88 @@ async function checker() {
     }
     return hash
   }
-
   async function compare(current: dataPool, old: dataPool = checkerData) {
-    const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
+    var modified = false
     if (channel == null) return
-    if (old.link.length <= 0) {
-      channel.send(`${current.link.length} shop found`)
+    if (old.link.length === 0) {
       displayChecker(channel, current)
-      return
+      return true
     }
-    var content = ''
-    for (var i = 0; (i = current.link.length); i++) {
-      if (!old.link.includes(current.link[i])) {
-        content += `new shop\n[${current.title[i]}](${current.link[i]})\n`
-        break
+    var contentList: Array<string> = ['', '', '', '']
+    const tag = ['new shop', 'title change', 'info change', 'shop delete']
+    for (var i = 0; i < current.link.length; i++) {
+      const oldIndex = old.link.indexOf(current.link[i])
+      if (oldIndex === -1) {
+        contentList[0] += `[${current.title[i]}](${current.link[i]})\n`
+        continue
       }
-      var oldIndex = old.link.indexOf(current.link[i])
       if (current.title[i] != old.title[oldIndex]) {
-        content += `title change\n[${old.title[oldIndex]}](${current.link[i]})  ->  [${current.title[i]}](${current.link[i]})\n`
-        break
+        contentList[1] += `[${old.title[oldIndex]}](${current.link[i]})->\n[${current.title[i]}](${current.link[i]})\n`
+        continue
       }
       if (current.info[i] != old.info[oldIndex]) {
-        content += `info change\n[${current.title[oldIndex]}](${current.link[i]})\n`
+        contentList[2] += `[${current.title[oldIndex]}](${current.link[i]})\n`
       }
     }
-    const embed = new MessageEmbed().addFields({name: 'List', value: content})
-    channel.send({
-      embeds: [embed]
-    })
+    for (var i = 0; i < old.link.length; i++) {
+      const newIndex = current.link.indexOf(old.link[i])
+      if (newIndex === -1) {
+        contentList[3] += `${old.title[i]}](${old.link[i]})\n`
+      }
+    }
+    for (var i = 0; i < contentList.length; i++) {
+      if (contentList[i].length > 0) {
+        modified = true
+        const embed = new MessageEmbed().addFields({name: tag[i], value: contentList[i]})
+        channel.send({
+          embeds: [embed]
+        })
+      }
+    }
+    return modified
   }
-
   function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
 
+  console.log('Init checker.')
+  checkerData = new dataPool()
+  const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
+  await channel.send(`Init checker.`)
+
   while (checkerFlag) {
+    console.log('Fetching shop list.')
+    let botMsg = await channel.send(`Fetching shop list.`)
     const shopList = await getShopList()
     var currentData = new dataPool()
     for (const link of shopList) {
-      await fetch(link)
-        .then(res => res.text())
-        .then(text => {
-          const parser = new DOMParser()
-          const page = parser.parseFromString(text, 'text/html')
-          const info = page.querySelector('#editer_main > div')
-          if (info != null) {
-            currentData.link.push(link)
-            currentData.title.push(page.title)
-            currentData.info.push(hashCode(info.innerHTML))
-          }
-        })
+      const {body} = await undici.request(link)
+      const {window} = new jsdom.JSDOM(await body.text())
+      const info = window.document.querySelector('#editer_main > div')
+      if (info != null) {
+        currentData.link.push(link)
+        currentData.title.push(window.document.title)
+        currentData.info.push(hashCode(info.innerHTML))
+      }
     }
-    await compare(currentData)
+
+    console.log('Checking data.')
+    await botMsg.edit(`Checking data.`)
+    var modified = await compare(currentData)
+    if (!modified) {
+      await botMsg.edit(`No data change`)
+      await sleep(5000)
+    }
+    botMsg.delete()
+
     checkerData = currentData
-    await sleep(300000)
+    for (var i = 0; i < 1200; i++) {
+      await sleep(1000)
+      if (!checkerFlag) break
+    }
   }
+
+  channel.send(`Checker exited.`)
 }
 
 client.on('messageCreate', message => {
@@ -268,7 +307,7 @@ client.on('messageCreate', message => {
 
   let args = message.content.split(' ')
 
-  if (args[0].slice(2) === 'rangedelete') {
+  if (args[0].slice(2) === 'rangedelete' || args[0].slice(2) === 'rd') {
     if (args.length != 3) {
       message.channel.send({
         content: 'Invalid arguments count\nUsage:  !!rangedelete  MessageID1  MessageID2'
@@ -315,7 +354,9 @@ client.on('messageCreate', message => {
       checkerFlag = false
     }
     if (args[1] === 'display') {
-      displayChecker(message.channel as TextChannel, checkerData)
+      if (checkerFlag) {
+        displayChecker(message.channel as TextChannel, checkerData)
+      }
     }
   }
 

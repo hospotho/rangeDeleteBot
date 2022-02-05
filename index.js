@@ -18,20 +18,14 @@ var __importStar = (this && this.__importStar) || function (mod) {
     __setModuleDefault(result, mod);
     return result;
 };
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = __importStar(require("discord.js"));
+const undici_1 = __importDefault(require("undici"));
+const jsdom_1 = __importDefault(require("jsdom"));
+global.HTMLAnchorElement = new jsdom_1.default.JSDOM().window.HTMLAnchorElement;
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const prefix = '!!';
@@ -74,213 +68,236 @@ function msToMinSec(ms) {
     let sec = Math.floor((ms % 60000) / 1000);
     return (min > 0 ? min + 'm' : '') + (sec < 10 && min > 0 ? '0' : '') + sec + 's';
 }
-function rangedelete(msg) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const message = msg;
-        const channel = message.channel;
-        const args = message.content.split(' ');
-        if (args[1] === args[2]) {
-            channel.send(`MessageID(1) and MessageID(2) should not be the same.`);
-            return;
+async function rangedelete(msg) {
+    const message = msg;
+    const channel = message.channel;
+    const args = message.content.split(' ');
+    if (args[1] === args[2]) {
+        channel.send(`MessageID(1) and MessageID(2) should not be the same.`);
+        return;
+    }
+    if (parseInt(args[1]) > parseInt(args[2])) {
+        channel.send(`Message(1) is newer than Message(2).`);
+        return;
+    }
+    async function fetch(_id, _ch = channel) {
+        try {
+            const msg = await _ch.messages.fetch(_id);
+            return msg;
         }
-        if (parseInt(args[1]) > parseInt(args[2])) {
-            channel.send(`Message(1) is newer than Message(2).`);
-            return;
-        }
-        function fetch(_id, _ch = channel) {
-            return __awaiter(this, void 0, void 0, function* () {
+        catch (error) {
+            const channels = _ch.guild.channels.cache;
+            for (const [_, ch] of channels) {
+                if (!ch.isText())
+                    continue;
                 try {
-                    const msg = yield _ch.messages.fetch(_id);
+                    const msg = await ch.messages.fetch(_id);
                     return msg;
                 }
                 catch (error) {
-                    const channels = _ch.guild.channels.cache;
-                    for (const [_, ch] of channels) {
-                        if (!ch.isText())
-                            continue;
-                        try {
-                            const msg = yield ch.messages.fetch(_id);
-                            return msg;
-                        }
-                        catch (error) {
-                            continue;
-                        }
-                    }
+                    continue;
                 }
-            });
+            }
         }
-        const msg1 = yield fetch(args[1]);
-        if (!msg1) {
-            channel.send(`Message(1) ${args[1]} not found.`);
-            return;
-        }
-        const msg2 = yield fetch(args[2]);
-        if (!msg2) {
-            channel.send(`Message(2) ${args[2]} not found.`);
-            return;
-        }
-        if (channel != msg1.channel || msg1.channel != msg2.channel) {
-            channel.send(`Messages need to be in same channel.`);
-            return;
-        }
-        let startTime = Date.now();
-        yield message.delete();
-        let botMsg = yield channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
-            return sent;
-        });
-        logger.logging(`Range delete start by ${message.author.username} at #${channel.name} id: ${message.id}`);
-        yield channel.send(`<:gbf_makira_gun:685481376400932895>`);
-        let msgs = yield channel.messages.fetch({
-            after: msg1.id,
-            limit: 99
+    }
+    const msg1 = await fetch(args[1]);
+    if (!msg1) {
+        channel.send(`Message(1) ${args[1]} not found.`);
+        return;
+    }
+    const msg2 = await fetch(args[2]);
+    if (!msg2) {
+        channel.send(`Message(2) ${args[2]} not found.`);
+        return;
+    }
+    if (channel != msg1.channel || msg1.channel != msg2.channel) {
+        channel.send(`Messages need to be in same channel.`);
+        return;
+    }
+    let startTime = Date.now();
+    await message.delete();
+    let botMsg = await channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`).then(sent => {
+        return sent;
+    });
+    logger.logging(`Range delete start by ${message.author.username} at #${channel.name} id: ${message.id}`);
+    await channel.send(`<:gbf_makira_gun:685481376400932895>`);
+    let msgs = await channel.messages.fetch({
+        after: msg1.id,
+        limit: 99
+    });
+    msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
+    msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
+    await msg1.delete();
+    let count = 1;
+    await channel.bulkDelete(msgs).then(msg => (count += msg.size));
+    while (!msgs.has(msg2.id)) {
+        await botMsg.edit(`Still deleting, ${count} messages deleted so far`).then(() => logger.logging(`${count} messages deleted`));
+        let tmp = msgs.lastKey();
+        msgs = await channel.messages.fetch({
+            after: tmp,
+            limit: 100
         });
         msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
         msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-        yield msg1.delete();
-        let count = 1;
-        yield channel.bulkDelete(msgs).then(msg => (count += msg.size));
-        while (!msgs.has(msg2.id)) {
-            yield botMsg.edit(`Still deleting, ${count} messages deleted so far`).then(() => logger.logging(`${count} messages deleted`));
-            let tmp = msgs.lastKey();
-            msgs = yield channel.messages.fetch({
-                after: tmp,
-                limit: 100
-            });
-            msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp);
-            msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
-            yield channel.bulkDelete(msgs).then(msg => (count += msg.size));
-        }
-        let timeCost = msToMinSec(Date.now() - startTime);
-        yield botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`).then(() => {
-            logger.logging(`Complete, ${count} messages deleted in ${timeCost} id: ${message.id}`);
-        });
+        await channel.bulkDelete(msgs).then(msg => (count += msg.size));
+    }
+    let timeCost = msToMinSec(Date.now() - startTime);
+    await botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`).then(() => {
+        logger.logging(`Complete, ${count} messages deleted in ${timeCost} id: ${message.id}`);
     });
 }
-function displayChecker(channel, data) {
-    return __awaiter(this, void 0, void 0, function* () {
+async function displayChecker(channel, data) {
+    const length = data.link.length;
+    console.log(`Display data, length:  ${length}.`);
+    channel.send(`Display data, length:  ${length}.`);
+    for (var i = 0; i < length - (length % 5); i += 5) {
         var content = '';
-        for (var i = 0; i < data.link.length; i++) {
-            content += `[${data.title[i]}](${data.link[i]})\n`;
-        }
-        const embed = new discord_js_1.MessageEmbed().addFields({ name: 'List', value: content });
+        content += `[${data.title[i]}](${data.link[i]})\n`;
+        content += `[${data.title[i + 1]}](${data.link[i + 1]})\n`;
+        content += `[${data.title[i + 2]}](${data.link[i + 2]})\n`;
+        content += `[${data.title[i + 3]}](${data.link[i + 3]})\n`;
+        content += `[${data.title[i + 4]}](${data.link[i + 4]})\n`;
+        const embed = new discord_js_1.MessageEmbed().addFields({ name: `${i + 1}-${i + 5}`, value: content });
         channel.send({
             embeds: [embed]
         });
+    }
+    var content = '';
+    for (var i = Math.floor(length / 5) * 5; i < length; i++) {
+        content += `[${data.title[i]}](${data.link[i]})\n`;
+    }
+    const embed = new discord_js_1.MessageEmbed().addFields({ name: `${Math.floor(length / 5) * 5 + 1}-${data.link.length}`, value: content });
+    channel.send({
+        embeds: [embed]
     });
 }
-function checker() {
-    return __awaiter(this, void 0, void 0, function* () {
-        function getShopList() {
-            return __awaiter(this, void 0, void 0, function* () {
-                const searchPage = [
-                    'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
-                    'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
-                ];
-                const conditions = ['代抽', '代練', '共鬥', '肝弟'];
-                var shopTitleList = [];
-                var shopLinkList = [];
-                for (const page of searchPage) {
-                    yield fetch(page)
-                        .then(res => res.text())
-                        .then(text => {
-                        const parser = new DOMParser();
-                        const page = parser.parseFromString(text, 'text/html');
-                        const eleList = page.querySelectorAll('#wrapper > .w-currency');
-                        eleList.forEach(el => {
-                            var a = el.querySelector('.c-title-line.c-title-head > a');
-                            if (a != null && a instanceof HTMLAnchorElement) {
-                                if (!shopTitleList.includes(a.title)) {
-                                    var flag = 1;
-                                    for (const str of conditions) {
-                                        if (a.title.indexOf(str) > -1)
-                                            flag = 0;
-                                    }
-                                    if (flag) {
-                                        shopTitleList.push(a.title);
-                                        shopLinkList.push(a.href);
-                                    }
-                                }
-                            }
-                        });
-                    });
+async function checker() {
+    const searchPage = [
+        'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
+        'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
+    ];
+    const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟'];
+    async function getShopList() {
+        const result = [];
+        const titleList = [];
+        for (const url of searchPage) {
+            const { body } = await undici_1.default.request(url);
+            const { window } = new jsdom_1.default.JSDOM(await body.text());
+            const shops = window.document.querySelectorAll('.w-currency');
+            shops.forEach(shop => {
+                const title = shop.querySelector('.c-title-line.c-title-head > a');
+                if (title != null) {
+                    if (titleList.indexOf(title.title) != -1)
+                        return;
+                    let flag = true;
+                    for (let text of conditions) {
+                        if (title.title.includes(text))
+                            flag = false;
+                    }
+                    if (flag) {
+                        result.push('https://www.8591.com.tw' + title.href.substring(1));
+                        titleList.push(title.title);
+                    }
                 }
-                return shopLinkList;
-                //console.log(shopTitleList)
             });
         }
-        function hashCode(str) {
-            var hash = 0;
-            if (str.length === 0)
-                return hash;
-            for (var i = 0; i < str.length; i++) {
-                hash = hash * 31 + str.charCodeAt(i);
-                hash |= 0; // Convert to 32bit integer
-            }
+        return result;
+    }
+    function hashCode(str) {
+        var hash = 0;
+        if (str.length === 0)
             return hash;
+        for (var i = 0; i < str.length; i++) {
+            hash = hash * 31 + str.charCodeAt(i);
+            hash |= 0;
         }
-        function compare(current, old = checkerData) {
-            return __awaiter(this, void 0, void 0, function* () {
-                const channel = (yield client.channels.fetch('938732984973017129'));
-                if (channel == null)
-                    return;
-                if (old.link.length <= 0) {
-                    channel.send(`${current.link.length} shop found`);
-                    displayChecker(channel, current);
-                    return;
-                }
-                var content = '';
-                for (var i = 0; (i = current.link.length); i++) {
-                    if (!old.link.includes(current.link[i])) {
-                        content += `new shop\n[${current.title[i]}](${current.link[i]})\n`;
-                        break;
-                    }
-                    var oldIndex = old.link.indexOf(current.link[i]);
-                    if (current.title[i] != old.title[oldIndex]) {
-                        content += `title change\n[${old.title[oldIndex]}](${current.link[i]})  ->  [${current.title[i]}](${current.link[i]})\n`;
-                        break;
-                    }
-                    if (current.info[i] != old.info[oldIndex]) {
-                        content += `info change\n[${current.title[oldIndex]}](${current.link[i]})\n`;
-                    }
-                }
-                const embed = new discord_js_1.MessageEmbed().addFields({ name: 'List', value: content });
+        return hash;
+    }
+    async function compare(current, old = checkerData) {
+        var modified = false;
+        if (channel == null)
+            return;
+        if (old.link.length === 0) {
+            displayChecker(channel, current);
+            return true;
+        }
+        var contentList = ['', '', '', ''];
+        const tag = ['new shop', 'title change', 'info change', 'shop delete'];
+        for (var i = 0; i < current.link.length; i++) {
+            const oldIndex = old.link.indexOf(current.link[i]);
+            if (oldIndex === -1) {
+                contentList[0] += `[${current.title[i]}](${current.link[i]})\n`;
+                continue;
+            }
+            if (current.title[i] != old.title[oldIndex]) {
+                contentList[1] += `[${old.title[oldIndex]}](${current.link[i]})->\n[${current.title[i]}](${current.link[i]})\n`;
+                continue;
+            }
+            if (current.info[i] != old.info[oldIndex]) {
+                contentList[2] += `[${current.title[oldIndex]}](${current.link[i]})\n`;
+            }
+        }
+        for (var i = 0; i < old.link.length; i++) {
+            const newIndex = current.link.indexOf(old.link[i]);
+            if (newIndex === -1) {
+                contentList[3] += `${old.title[i]}](${old.link[i]})\n`;
+            }
+        }
+        for (var i = 0; i < contentList.length; i++) {
+            if (contentList[i].length > 0) {
+                modified = true;
+                const embed = new discord_js_1.MessageEmbed().addFields({ name: tag[i], value: contentList[i] });
                 channel.send({
                     embeds: [embed]
                 });
-            });
-        }
-        function sleep(ms) {
-            return new Promise(resolve => setTimeout(resolve, ms));
-        }
-        while (checkerFlag) {
-            const shopList = yield getShopList();
-            var currentData = new dataPool();
-            for (const link of shopList) {
-                yield fetch(link)
-                    .then(res => res.text())
-                    .then(text => {
-                    const parser = new DOMParser();
-                    const page = parser.parseFromString(text, 'text/html');
-                    const info = page.querySelector('#editer_main > div');
-                    if (info != null) {
-                        currentData.link.push(link);
-                        currentData.title.push(page.title);
-                        currentData.info.push(hashCode(info.innerHTML));
-                    }
-                });
             }
-            yield compare(currentData);
-            checkerData = currentData;
-            yield sleep(300000);
         }
-    });
+        return modified;
+    }
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+    console.log('Init checker.');
+    checkerData = new dataPool();
+    const channel = (await client.channels.fetch('938732984973017129'));
+    await channel.send(`Init checker.`);
+    while (checkerFlag) {
+        console.log('Fetching shop list.');
+        let botMsg = await channel.send(`Fetching shop list.`);
+        const shopList = await getShopList();
+        var currentData = new dataPool();
+        for (const link of shopList) {
+            const { body } = await undici_1.default.request(link);
+            const { window } = new jsdom_1.default.JSDOM(await body.text());
+            const info = window.document.querySelector('#editer_main > div');
+            if (info != null) {
+                currentData.link.push(link);
+                currentData.title.push(window.document.title);
+                currentData.info.push(hashCode(info.innerHTML));
+            }
+        }
+        console.log('Checking data.');
+        await botMsg.edit(`Checking data.`);
+        var modified = await compare(currentData);
+        if (!modified) {
+            await botMsg.edit(`No data change`);
+            await sleep(5000);
+        }
+        botMsg.delete();
+        checkerData = currentData;
+        for (var i = 0; i < 1200; i++) {
+            await sleep(1000);
+            if (!checkerFlag)
+                break;
+        }
+    }
+    channel.send(`Checker exited.`);
 }
 client.on('messageCreate', message => {
     if (!message.content.startsWith(prefix))
         return;
     if (!message.member || !message.guild)
         return;
-    // check permissions
     if (message.author.id !== message.guild.ownerId) {
         if (!message.member.permissionsIn(message.channel).has(discord_js_1.default.Permissions.FLAGS.MANAGE_MESSAGES) ||
             message.author.bot) {
@@ -289,7 +306,7 @@ client.on('messageCreate', message => {
         }
     }
     let args = message.content.split(' ');
-    if (args[0].slice(2) === 'rangedelete') {
+    if (args[0].slice(2) === 'rangedelete' || args[0].slice(2) === 'rd') {
         if (args.length != 3) {
             message.channel.send({
                 content: 'Invalid arguments count\nUsage:  !!rangedelete  MessageID1  MessageID2'
@@ -334,7 +351,9 @@ client.on('messageCreate', message => {
             checkerFlag = false;
         }
         if (args[1] === 'display') {
-            displayChecker(message.channel, checkerData);
+            if (checkerFlag) {
+                displayChecker(message.channel, checkerData);
+            }
         }
     }
     if (args[0].slice(2) === 'help') {
@@ -344,4 +363,3 @@ client.on('messageCreate', message => {
     }
 });
 client.login(process.env.TOKEN);
-//# sourceMappingURL=index.js.map
