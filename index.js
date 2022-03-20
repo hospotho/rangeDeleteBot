@@ -162,14 +162,16 @@ async function displayChecker(channel, data) {
             embeds: [embed]
         });
     }
-    var content = '';
-    for (var i = Math.floor(length / 5) * 5; i < length; i++) {
-        content += `[${data.title[i]}](${data.link[i]})\n`;
+    if (length % 5 > 0) {
+        var content = '';
+        for (var i = Math.floor(length / 5) * 5; i < length; i++) {
+            content += `[${data.title[i]}](${data.link[i]})\n`;
+        }
+        const embed = new discord_js_1.MessageEmbed().addFields({ name: `${Math.floor(length / 5) * 5 + 1}-${data.link.length}`, value: content });
+        channel.send({
+            embeds: [embed]
+        });
     }
-    const embed = new discord_js_1.MessageEmbed().addFields({ name: `${Math.floor(length / 5) * 5 + 1}-${data.link.length}`, value: content });
-    channel.send({
-        embeds: [embed]
-    });
 }
 async function checker() {
     const searchPage = [
