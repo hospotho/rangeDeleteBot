@@ -249,15 +249,35 @@ async function checker() {
   function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms))
   }
+  function timeString() {
+    var time = new Date()
+    const month = time.getMonth() + 1
+    const day = time.getDate()
+    const hour = time.getHours()
+    const min = time.getMinutes()
+    const string =
+      (month > 9 ? '' : '0') +
+      month +
+      '/' +
+      (day > 9 ? '' : '0') +
+      day +
+      '  ' +
+      (hour > 9 ? '' : '0') +
+      hour +
+      ':' +
+      (min > 9 ? '' : '0') +
+      min
+    return string
+  }
 
   console.log('Init checker.')
   checkerData = new dataPool()
   const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
   await channel.send(`Init checker.`)
+  let botMsg = await channel.send(`Fetching shop list.`)
 
   while (checkerFlag) {
     console.log('Fetching shop list.')
-    let botMsg = await channel.send(`Fetching shop list.`)
     const shopList = await getShopList()
     var currentData = new dataPool()
     for (const link of shopList) {
@@ -275,13 +295,15 @@ async function checker() {
     await botMsg.edit(`Checking data.`)
     var modified = await compare(currentData)
     if (!modified) {
-      await botMsg.edit(`No data change`)
-      await sleep(5000)
+      await botMsg.edit(`Last updated: ${timeString()}`)
+    } else {
+      botMsg.delete()
+      botMsg = await channel.send(`Last updated: ${timeString()}`)
     }
-    botMsg.delete()
-
     checkerData = currentData
-    for (var i = 0; i < 1200; i++) {
+
+    //update per 10 min
+    for (var i = 0; i < 600; i++) {
       await sleep(1000)
       if (!checkerFlag) break
     }
@@ -343,7 +365,7 @@ client.on('messageCreate', message => {
     }
     if (args.length != 2) {
       message.channel.send({
-        content: 'Invalid arguments count\nUsage:  !!check85  on/off'
+        content: 'Invalid arguments count\nUsage:  !!checker  on/off'
       })
       return
     }
