@@ -2,8 +2,11 @@ import DiscordJS, {Intents, Message, TextChannel, Permissions, MessageEmbed} fro
 import undici from 'undici'
 import jsdom from 'jsdom'
 global.HTMLAnchorElement = new jsdom.JSDOM().window.HTMLAnchorElement
+import * as db from './database'
+import {sleep, hashCode, msToMinSec, timeString} from './utility'
 import dotenv from 'dotenv'
 dotenv.config()
+
 const prefix = '!!'
 var checkerFlag = false
 const client = new DiscordJS.Client({
@@ -44,15 +47,30 @@ class dataPool {
 var logger = new logStack()
 var checkerData = new dataPool()
 
+async function init() {
+  const data = await db.getDBShopList()
+  for (const shop of data) {
+    checkerData.link.push(shop.link)
+    checkerData.title.push(shop.title)
+    checkerData.info.push(shop.info)
+  }
+  logger.logging('Old data is ready to use.')
+
+  const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
+  const msg = await channel.messages.fetch({limit: 1}).then(coll => coll.first())
+  if (msg === undefined) return
+  if (client.user !== null && msg.author.id === client.user.id) {
+    logger.logging('Auto restart checker.')
+    await channel.send(`Auto restart checker.`)
+    checkerFlag = true
+    checker()
+  }
+}
+
 client.on('ready', () => {
   logger.logging('The bot is ready.')
+  init()
 })
-
-function msToMinSec(ms: number) {
-  let min = Math.floor(ms / 60000)
-  let sec = Math.floor((ms % 60000) / 1000)
-  return (min > 0 ? min + 'm' : '') + (sec < 10 && min > 0 ? '0' : '') + sec + 's'
-}
 
 async function rangedelete(msg: Message) {
   const message = msg
@@ -171,7 +189,7 @@ async function checker() {
     'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
     'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
   ]
-  const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟']
+  const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄']
 
   async function getShopList() {
     const result: Array<string> = []
@@ -197,15 +215,7 @@ async function checker() {
     }
     return result
   }
-  function hashCode(str: string): number {
-    var hash = 0
-    if (str.length === 0) return hash
-    for (var i = 0; i < str.length; i++) {
-      hash = hash * 31 + str.charCodeAt(i)
-      hash |= 0 // Convert to 32bit integer
-    }
-    return hash
-  }
+
   async function compare(current: dataPool, old: dataPool = checkerData) {
     var modified = false
     if (channel == null) return
@@ -232,6 +242,7 @@ async function checker() {
     for (var i = 0; i < old.link.length; i++) {
       const newIndex = current.link.indexOf(old.link[i])
       if (newIndex === -1) {
+        await db.deleteDBShopList(old.link[i])
         contentList[3] += `${old.title[i]}](${old.link[i]})\n`
       }
     }
@@ -246,30 +257,6 @@ async function checker() {
     }
     return modified
   }
-  function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms))
-  }
-  function timeString() {
-    var time = new Date()
-    const month = time.getMonth() + 1
-    const day = time.getDate()
-    const hour = time.getHours()
-    const min = time.getMinutes()
-    const string =
-      (month > 9 ? '' : '0') +
-      month +
-      '/' +
-      (day > 9 ? '' : '0') +
-      day +
-      '  ' +
-      (hour > 9 ? '' : '0') +
-      hour +
-      ':' +
-      (min > 9 ? '' : '0') +
-      min
-    return string
-  }
-
   console.log('Init checker.')
   checkerData = new dataPool()
   const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
@@ -280,6 +267,7 @@ async function checker() {
     console.log('Fetching shop list.')
     const shopList = await getShopList()
     var currentData = new dataPool()
+
     for (const link of shopList) {
       const {body} = await undici.request(link)
       const {window} = new jsdom.JSDOM(await body.text())
@@ -301,6 +289,7 @@ async function checker() {
       botMsg = await channel.send(`Last updated: ${timeString()}`)
     }
     checkerData = currentData
+    db.updateDBShopList(checkerData.link, checkerData.title, checkerData.info)
 
     //update per 10 min
     for (var i = 0; i < 600; i++) {
@@ -371,7 +360,6 @@ client.on('messageCreate', message => {
     }
     if (args[1] === 'on' && !checkerFlag) {
       checkerFlag = true
-      checkerData = new dataPool()
       checker()
     }
     if (args[1] === 'off') {

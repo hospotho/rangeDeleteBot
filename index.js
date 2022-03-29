@@ -26,6 +26,8 @@ const discord_js_1 = __importStar(require("discord.js"));
 const undici_1 = __importDefault(require("undici"));
 const jsdom_1 = __importDefault(require("jsdom"));
 global.HTMLAnchorElement = new jsdom_1.default.JSDOM().window.HTMLAnchorElement;
+const db = __importStar(require("./database"));
+const utility_1 = require("./utility");
 const dotenv_1 = __importDefault(require("dotenv"));
 dotenv_1.default.config();
 const prefix = '!!';
@@ -60,14 +62,29 @@ class dataPool {
 }
 var logger = new logStack();
 var checkerData = new dataPool();
+async function init() {
+    const data = await db.getDBShopList();
+    for (const shop of data) {
+        checkerData.link.push(shop.link);
+        checkerData.title.push(shop.title);
+        checkerData.info.push(shop.info);
+    }
+    logger.logging('Old data is ready to use.');
+    const channel = (await client.channels.fetch('938732984973017129'));
+    const msg = await channel.messages.fetch({ limit: 1 }).then(coll => coll.first());
+    if (msg === undefined)
+        return;
+    if (client.user !== null && msg.author.id === client.user.id) {
+        logger.logging('Auto restart checker.');
+        await channel.send(`Auto restart checker.`);
+        checkerFlag = true;
+        checker();
+    }
+}
 client.on('ready', () => {
     logger.logging('The bot is ready.');
+    init();
 });
-function msToMinSec(ms) {
-    let min = Math.floor(ms / 60000);
-    let sec = Math.floor((ms % 60000) / 1000);
-    return (min > 0 ? min + 'm' : '') + (sec < 10 && min > 0 ? '0' : '') + sec + 's';
-}
 async function rangedelete(msg) {
     const message = msg;
     const channel = message.channel;
@@ -141,7 +158,7 @@ async function rangedelete(msg) {
         msgs = msgs.sort((a, b) => a.createdTimestamp - b.createdTimestamp);
         await channel.bulkDelete(msgs).then(msg => (count += msg.size));
     }
-    let timeCost = msToMinSec(Date.now() - startTime);
+    let timeCost = (0, utility_1.msToMinSec)(Date.now() - startTime);
     await botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`).then(() => {
         logger.logging(`Complete, ${count} messages deleted in ${timeCost} id: ${message.id}`);
     });
@@ -178,7 +195,7 @@ async function checker() {
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
     ];
-    const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟'];
+    const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄'];
     async function getShopList() {
         const result = [];
         const titleList = [];
@@ -204,16 +221,6 @@ async function checker() {
             });
         }
         return result;
-    }
-    function hashCode(str) {
-        var hash = 0;
-        if (str.length === 0)
-            return hash;
-        for (var i = 0; i < str.length; i++) {
-            hash = hash * 31 + str.charCodeAt(i);
-            hash |= 0;
-        }
-        return hash;
     }
     async function compare(current, old = checkerData) {
         var modified = false;
@@ -242,6 +249,7 @@ async function checker() {
         for (var i = 0; i < old.link.length; i++) {
             const newIndex = current.link.indexOf(old.link[i]);
             if (newIndex === -1) {
+                await db.deleteDBShopList(old.link[i]);
                 contentList[3] += `${old.title[i]}](${old.link[i]})\n`;
             }
         }
@@ -255,28 +263,6 @@ async function checker() {
             }
         }
         return modified;
-    }
-    function sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-    function timeString() {
-        var time = new Date();
-        const month = time.getMonth() + 1;
-        const day = time.getDate();
-        const hour = time.getHours();
-        const min = time.getMinutes();
-        const string = (month > 9 ? '' : '0') +
-            month +
-            '/' +
-            (day > 9 ? '' : '0') +
-            day +
-            '  ' +
-            (hour > 9 ? '' : '0') +
-            hour +
-            ':' +
-            (min > 9 ? '' : '0') +
-            min;
-        return string;
     }
     console.log('Init checker.');
     checkerData = new dataPool();
@@ -294,22 +280,23 @@ async function checker() {
             if (info != null) {
                 currentData.link.push(link);
                 currentData.title.push(window.document.title);
-                currentData.info.push(hashCode(info.innerHTML));
+                currentData.info.push((0, utility_1.hashCode)(info.innerHTML));
             }
         }
         console.log('Checking data.');
         await botMsg.edit(`Checking data.`);
         var modified = await compare(currentData);
         if (!modified) {
-            await botMsg.edit(`Last updated: ${timeString()}`);
+            await botMsg.edit(`Last updated: ${(0, utility_1.timeString)()}`);
         }
         else {
             botMsg.delete();
-            botMsg = await channel.send(`Last updated: ${timeString()}`);
+            botMsg = await channel.send(`Last updated: ${(0, utility_1.timeString)()}`);
         }
         checkerData = currentData;
+        db.updateDBShopList(checkerData.link, checkerData.title, checkerData.info);
         for (var i = 0; i < 600; i++) {
-            await sleep(1000);
+            await (0, utility_1.sleep)(1000);
             if (!checkerFlag)
                 break;
         }
@@ -367,7 +354,6 @@ client.on('messageCreate', message => {
         }
         if (args[1] === 'on' && !checkerFlag) {
             checkerFlag = true;
-            checkerData = new dataPool();
             checker();
         }
         if (args[1] === 'off') {
