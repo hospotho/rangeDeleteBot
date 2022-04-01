@@ -29,7 +29,7 @@ export async function getDBShopList() {
   }
 }
 
-export async function updateDBShopList(links: Array<string>, titles: Array<string>, infos: Array<number>) {
+export async function updateDBShopList(links: Array<string>, titles: Array<string>, infos: Array<number>, _upsert: boolean = true) {
   try {
     await client.connect()
     const database = client.db('BotDB')
@@ -47,7 +47,7 @@ export async function updateDBShopList(links: Array<string>, titles: Array<strin
               info: infos[i]
             }
           },
-          {upsert: true}
+          {upsert: _upsert}
         )
       )
     }
@@ -55,6 +55,7 @@ export async function updateDBShopList(links: Array<string>, titles: Array<strin
     const match = result.reduce((r, c) => r + c.matchedCount, 0)
     const update = result.reduce((r, c) => r + c.modifiedCount, 0)
     console.log(`${match} document(s) matched the filter, updated ${update} document(s)`)
+    return [match, update]
   } finally {
     await client.close()
   }
@@ -69,8 +70,10 @@ export async function deleteDBShopList(_link: string) {
     const result = await shops.deleteOne(query)
     if (result.deletedCount === 1) {
       console.log('Successfully deleted one document.')
+      return true
     } else {
       console.log('No documents matched the query. Deleted 0 documents.')
+      return false
     }
   } finally {
     await client.close()

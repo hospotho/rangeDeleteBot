@@ -28,7 +28,7 @@ async function getDBShopList() {
     }
 }
 exports.getDBShopList = getDBShopList;
-async function updateDBShopList(links, titles, infos) {
+async function updateDBShopList(links, titles, infos, _upsert = true) {
     try {
         await client.connect();
         const database = client.db('BotDB');
@@ -42,12 +42,13 @@ async function updateDBShopList(links, titles, infos) {
                     title: titles[i],
                     info: infos[i]
                 }
-            }, { upsert: true }));
+            }, { upsert: _upsert }));
         }
         const result = await Promise.all(promiseList);
         const match = result.reduce((r, c) => r + c.matchedCount, 0);
         const update = result.reduce((r, c) => r + c.modifiedCount, 0);
         console.log(`${match} document(s) matched the filter, updated ${update} document(s)`);
+        return [match, update];
     }
     finally {
         await client.close();
@@ -63,9 +64,11 @@ async function deleteDBShopList(_link) {
         const result = await shops.deleteOne(query);
         if (result.deletedCount === 1) {
             console.log('Successfully deleted one document.');
+            return true;
         }
         else {
             console.log('No documents matched the query. Deleted 0 documents.');
+            return false;
         }
     }
     finally {

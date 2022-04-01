@@ -191,12 +191,13 @@ async function displayChecker(channel, data) {
     }
 }
 async function checker() {
-    const searchPage = [
-        'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
-        'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
-    ];
-    const conditions = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄'];
     async function getShopList() {
+        const searchPage = [
+            'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
+            'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
+        ];
+        const Wlist = ['代打', '試煉', '競速', 'SS'];
+        const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄'];
         const result = [];
         const titleList = [];
         for (const url of searchPage) {
@@ -209,10 +210,8 @@ async function checker() {
                     if (titleList.indexOf(title.title) != -1)
                         return;
                     let flag = true;
-                    for (let text of conditions) {
-                        if (title.title.includes(text))
-                            flag = false;
-                    }
+                    flag = Wlist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false);
+                    flag = !Blist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false);
                     if (flag) {
                         result.push('https://www.8591.com.tw' + title.href.substring(1));
                         titleList.push(title.title);
@@ -303,6 +302,66 @@ async function checker() {
     }
     channel.send(`Checker exited.`);
 }
+async function dbManger(message, type) {
+    const filter = (m) => m.author.id === message.author.id;
+    const collector = message.channel.createMessageCollector({ filter, time: 15000 });
+    if (type === 'create') {
+        logger.logging(`Try to create new record`);
+        var botMsg = await message.channel.send(`Please enter Link, Tilte and Info Hash.`);
+        collector.on('collect', async (m) => {
+            let data = m.content.split(' ');
+            let result = await db.updateDBShopList([data[0]], [data[1]], [Number(data[2])]);
+            if (result[0] === 0) {
+                logger.logging(`Record of ${data[0]} successfully created`);
+                message.channel.send(`Record of ${data[0]} successfully created`);
+            }
+            else {
+                logger.logging(`Record of ${data[0]} already esixt and update to new values`);
+                message.channel.send(`Record of ${data[0]} already esixt and update to new values`);
+            }
+            await message.delete();
+            await botMsg.delete();
+            await m.delete();
+        });
+    }
+    if (type === 'update') {
+        logger.logging(`Try to update record`);
+        var botMsg = await message.channel.send(`Please enter the Link of record, new tilte and new Info Hash.`);
+        collector.on('collect', async (m) => {
+            let data = m.content.split(' ');
+            let result = await db.updateDBShopList([data[0]], [data[1]], [Number(data[2])], false);
+            if (result[1]) {
+                logger.logging(`Record of ${data[0]} successfully updated`);
+                message.channel.send(`Record of ${data[0]} successfully updated`);
+            }
+            else {
+                logger.logging(`Record of ${data[0]} not found`);
+                message.channel.send(`Record of ${data[0]} not found`);
+            }
+            await message.delete();
+            await botMsg.delete();
+            await m.delete();
+        });
+    }
+    if (type === 'delete') {
+        logger.logging(`Try to delete record`);
+        var botMsg = await message.channel.send(`Please enter the Link of record`);
+        collector.on('collect', async (m) => {
+            let result = await db.deleteDBShopList(m.content);
+            if (result) {
+                logger.logging(`Record of ${m.content} successfully deleted`);
+                message.channel.send(`Record of ${m.content} successfully deleted`);
+            }
+            else {
+                logger.logging(`Record of ${m.content} not found`);
+                message.channel.send(`Record of ${m.content} not found`);
+            }
+            await message.delete();
+            await botMsg.delete();
+            await m.delete();
+        });
+    }
+}
 client.on('messageCreate', message => {
     if (!message.content.startsWith(prefix))
         return;
@@ -365,9 +424,30 @@ client.on('messageCreate', message => {
             }
         }
     }
+    if (args[0].slice(2) === 'db') {
+        if (message.guild.id !== '923553217' && message.author.id !== '472053971406815242') {
+            return;
+        }
+        if (args.length != 2) {
+            message.channel.send({
+                content: 'Invalid arguments count\nUsage:  !!db  create/update/delete'
+            });
+            return;
+        }
+        const options = ['create', 'update', 'delete'];
+        if (options.map(o => args[1] === o).reduce((acc, curr) => acc || curr, false)) {
+            dbManger(message, args[1]);
+        }
+        else {
+            message.channel.send({
+                content: 'Invalid options\nUsage:  !!db  create/update/delete'
+            });
+            return;
+        }
+    }
     if (args[0].slice(2) === 'help') {
         message.channel.send({
-            content: '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs (Size)\n!!checker (on/off/display)\n!!help`'
+            content: '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  (on/off/display)\n!!db  (create/update/delete)\n!!help`'
         });
     }
 });
