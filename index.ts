@@ -204,8 +204,9 @@ async function checker() {
         if (title != null) {
           if (titleList.indexOf(title.title) != -1) return
           let flag = true
-          flag = Wlist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
-          flag = !Blist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
+          let w = Wlist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
+          let b = !Blist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
+          flag = w && b
           if (flag) {
             result.push('https://www.8591.com.tw' + title.href.substring(1))
             titleList.push(title.title)
