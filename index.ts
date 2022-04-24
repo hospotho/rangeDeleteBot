@@ -599,7 +599,7 @@ client.on('messageCreate', message => {
       return
     }
     if (args.length != 2) {
-      message.channel.send('Invalid arguments count\nUsage:  !!checker  on/off/display/price')
+      message.channel.send('Invalid arguments count\nUsage:  !!checker  on/off/display/price/diff')
       return
     }
     if (args[1] === 'on' && !checkerFlag) {
@@ -657,7 +657,7 @@ client.on('messageCreate', message => {
 
   if (args[0].slice(2) === 'help') {
     message.channel.send(
-      '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  (on/off/display/price)\n!!db  (create/update/delete/history)\n!!help`'
+      '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  (on/off/display/price/diff)\n!!db  (create/update/delete/history)\n!!help`'
     )
     // message.channel.send({
     //   content:
