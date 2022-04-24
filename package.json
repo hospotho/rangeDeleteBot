@@ -6,7 +6,9 @@
   "author": "hospotho <a155268747@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "@types/diff": "^5.0.2",
     "@types/jsdom": "^16.2.14",
+    "diff": "^5.0.0",
     "discord.js": "^13.6.0",
     "dotenv": "^16.0.0",
     "jsdom": "^19.0.0",

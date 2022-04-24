@@ -25,7 +25,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = __importStar(require("discord.js"));
 const undici_1 = __importDefault(require("undici"));
 const jsdom_1 = __importDefault(require("jsdom"));
-global.HTMLAnchorElement = new jsdom_1.default.JSDOM().window.HTMLAnchorElement;
 const db = __importStar(require("./database"));
 const utility_1 = require("./utility");
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -58,21 +57,28 @@ class dataPool {
         this.link = [];
         this.title = [];
         this.info = [];
+        this.hash = [];
+        this.date = [];
     }
 }
 var logger = new logStack();
 var checkerData = new dataPool();
 async function init() {
-    const data = await db.getDBShopList();
+    logger.logging('Reading old data.');
+    const data = await db.getShopList();
     for (const shop of data) {
         checkerData.link.push(shop.link);
         checkerData.title.push(shop.title);
         checkerData.info.push(shop.info);
+        checkerData.hash.push(shop.hash);
+        checkerData.date.push(shop.date);
     }
-    logger.logging('Old data is ready to use.');
+    logger.logging(`${data.length} record found`);
     const channel = (await client.channels.fetch('938732984973017129'));
     const msg = await channel.messages.fetch({ limit: 1 }).then(coll => coll.first());
     if (msg === undefined)
+        return;
+    if (!msg.content.startsWith('Last updated'))
         return;
     if (client.user !== null && msg.author.id === client.user.id) {
         logger.logging('Auto restart checker.');
@@ -185,10 +191,103 @@ async function displayChecker(channel, data) {
             content += `[${data.title[i]}](${data.link[i]})\n`;
         }
         const embed = new discord_js_1.MessageEmbed().addFields({ name: `${Math.floor(length / 5) * 5 + 1}-${data.link.length}`, value: content });
-        channel.send({
-            embeds: [embed]
-        });
+        channel.send({ embeds: [embed] });
     }
+}
+async function displayHistory(channel, data) {
+    var index = 0;
+    const embed = () => new discord_js_1.MessageEmbed().addFields({
+        name: (0, utility_1.timeString)(data[index].date),
+        value: `[${data[index].title}](${data[index].link})` + '\n' + data[index].info
+    });
+    const row = new discord_js_1.MessageActionRow()
+        .addComponents(new discord_js_1.MessageButton().setCustomId('left').setLabel('<-').setStyle('PRIMARY'))
+        .addComponents(new discord_js_1.MessageButton().setCustomId('right').setLabel('->').setStyle('PRIMARY'));
+    let botmsg = await channel.send({
+        embeds: [embed()],
+        components: [row]
+    });
+    const filter = (butInt) => {
+        return butInt.user.id === '472053971406815242';
+    };
+    const collector = channel.createMessageComponentCollector({
+        filter,
+        time: 1000 * 60 * 3
+    });
+    collector.on('collect', async (i) => {
+        if (i.customId === 'left') {
+            index ? index-- : (index = data.length - 1);
+        }
+        if (i.customId === 'right') {
+            index < data.length - 1 ? index++ : (index = 0);
+        }
+        botmsg = await botmsg.edit({
+            embeds: [embed()],
+            components: [row]
+        });
+        i.deferUpdate();
+    });
+}
+async function displayPrice(channel, data) {
+    var index = 0;
+    const embed = () => new discord_js_1.MessageEmbed().addFields({
+        name: `${index + 1}/${data.link.length}`,
+        value: `[${data.title[index]}](${data.link[index]})` + '\n' + (0, utility_1.text2price)(data.info[index])
+    });
+    const row = new discord_js_1.MessageActionRow()
+        .addComponents(new discord_js_1.MessageButton().setCustomId('left').setLabel('<-').setStyle('PRIMARY'))
+        .addComponents(new discord_js_1.MessageButton().setCustomId('right').setLabel('->').setStyle('PRIMARY'));
+    let botmsg = await channel.send({
+        embeds: [embed()],
+        components: [row]
+    });
+    const filter = (butInt) => {
+        return butInt.user.id === '472053971406815242';
+    };
+    const collector = channel.createMessageComponentCollector({
+        filter,
+        time: 1000 * 60 * 3
+    });
+    collector.on('collect', async (i) => {
+        if (i.customId === 'left') {
+            index ? index-- : (index = data.link.length - 1);
+        }
+        if (i.customId === 'right') {
+            index < data.link.length - 1 ? index++ : (index = 0);
+        }
+        botmsg = await botmsg.edit({
+            embeds: [embed()],
+            components: [row]
+        });
+        i.deferUpdate();
+    });
+}
+async function displayDiff(message) {
+    const filter = (m) => m.author.id === message.author.id;
+    const collector = message.channel.createMessageCollector({ filter, time: 15000 });
+    logger.logging(`Try to diff record`);
+    var botMsg = await message.channel.send(`Please enter Link of the shop to diff.`);
+    collector.on('collect', async (m) => {
+        const data = await db.getShopHistory(m.content, true);
+        if (data.length !== 2) {
+            logger.logging(`Older record not found`);
+            message.channel.send('Older record not found');
+            return;
+        }
+        const embed = new discord_js_1.MessageEmbed().addFields({
+            name: `info diff`,
+            value: `[${data[0].title}](${data[0].link})` + '\n' + (0, utility_1.diff)(data[0].info, data[1].info)
+        });
+        logger.logging(`successfully diff ${m.content}`);
+        message.channel.send({ embeds: [embed] });
+        try {
+            await botMsg.delete();
+            await m.delete();
+        }
+        catch (err) {
+            console.log(err);
+        }
+    });
 }
 async function checker() {
     async function getShopList() {
@@ -228,6 +327,7 @@ async function checker() {
             return;
         if (old.link.length === 0) {
             displayChecker(channel, current);
+            await db.updateShopList(current.link, current.title, current.info, current.hash);
             return true;
         }
         var contentList = ['', '', '', ''];
@@ -236,20 +336,25 @@ async function checker() {
             const oldIndex = old.link.indexOf(current.link[i]);
             if (oldIndex === -1) {
                 contentList[0] += `[${current.title[i]}](${current.link[i]})\n`;
+                await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]]);
                 continue;
             }
             if (current.title[i] != old.title[oldIndex]) {
+                await db.discardShop(current.link[i]);
                 contentList[1] += `[${old.title[oldIndex]}](${current.link[i]})->\n[${current.title[i]}](${current.link[i]})\n`;
+                await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]]);
                 continue;
             }
             if (current.info[i] != old.info[oldIndex]) {
-                contentList[2] += `[${current.title[oldIndex]}](${current.link[i]})\n`;
+                await db.discardShop(current.link[i]);
+                contentList[2] += `[${current.title[i]}](${current.link[i]})\n`;
+                await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]]);
             }
         }
         for (var i = 0; i < old.link.length; i++) {
             const newIndex = current.link.indexOf(old.link[i]);
             if (newIndex === -1) {
-                await db.deleteDBShopList(old.link[i]);
+                await db.discardShop(old.link[i], true);
                 contentList[3] += `${old.title[i]}](${old.link[i]})\n`;
             }
         }
@@ -278,23 +383,33 @@ async function checker() {
             const { window } = new jsdom_1.default.JSDOM(await body.text());
             const info = window.document.querySelector('#editer_main > div');
             if (info != null) {
+                let images = window.document.querySelectorAll('#editer_main > div > img');
+                let str = '';
+                images.forEach(img => {
+                    str = str + img.src + '\n';
+                });
                 currentData.link.push(link);
                 currentData.title.push(window.document.title);
-                currentData.info.push((0, utility_1.hashCode)(info.innerHTML));
+                currentData.info.push(str + (0, utility_1.html2text)(info.innerHTML));
+                currentData.hash.push((0, utility_1.hashCode)(info.innerHTML));
+                currentData.date.push(Date.now());
             }
         }
         console.log('Checking data.');
         await botMsg.edit(`Checking data.`);
         var modified = await compare(currentData);
-        if (!modified) {
-            await botMsg.edit(`Last updated: ${(0, utility_1.timeString)()}`);
-        }
-        else {
+        var atLast = await channel.messages.fetch({ limit: 1 }).then(msg => {
+            let lastMsg = msg.first();
+            return (lastMsg === null || lastMsg === void 0 ? void 0 : lastMsg.id) === botMsg.id;
+        });
+        if (modified || !atLast) {
             botMsg.delete();
             botMsg = await channel.send(`Last updated: ${(0, utility_1.timeString)()}`);
         }
+        else {
+            botMsg.edit(`Last updated: ${(0, utility_1.timeString)()}`);
+        }
         checkerData = currentData;
-        db.updateDBShopList(checkerData.link, checkerData.title, checkerData.info);
         for (var i = 0; i < 600; i++) {
             await (0, utility_1.sleep)(1000);
             if (!checkerFlag)
@@ -311,7 +426,11 @@ async function dbManger(message, type) {
         var botMsg = await message.channel.send(`Please enter Link, Tilte and Info Hash.`);
         collector.on('collect', async (m) => {
             let data = m.content.split(' ');
-            let result = await db.updateDBShopList([data[0]], [data[1]], [Number(data[2])]);
+            if (data.length !== 4) {
+                message.channel.send(`Invalid length.`);
+                return;
+            }
+            let result = await db.updateShopList([data[0]], [data[1]], [data[2]], [Number(data[3])]);
             if (result[0] === 0) {
                 logger.logging(`Record of ${data[0]} successfully created`);
                 message.channel.send(`Record of ${data[0]} successfully created`);
@@ -320,17 +439,25 @@ async function dbManger(message, type) {
                 logger.logging(`Record of ${data[0]} already esixt and update to new values`);
                 message.channel.send(`Record of ${data[0]} already esixt and update to new values`);
             }
-            await message.delete();
-            await botMsg.delete();
-            await m.delete();
+            try {
+                await botMsg.delete();
+                await m.delete();
+            }
+            catch (err) {
+                console.log(err);
+            }
         });
     }
     if (type === 'update') {
         logger.logging(`Try to update record`);
-        var botMsg = await message.channel.send(`Please enter the Link of record, new tilte and new Info Hash.`);
+        var botMsg = await message.channel.send(`Please enter the Link of record, new tilte, info and hash.`);
         collector.on('collect', async (m) => {
             let data = m.content.split(' ');
-            let result = await db.updateDBShopList([data[0]], [data[1]], [Number(data[2])], false);
+            if (data.length !== 4) {
+                message.channel.send(`Invalid length.`);
+                return;
+            }
+            let result = await db.updateShopList([data[0]], [data[1]], [data[2]], [Number(data[3])], false);
             if (result[1]) {
                 logger.logging(`Record of ${data[0]} successfully updated`);
                 message.channel.send(`Record of ${data[0]} successfully updated`);
@@ -339,27 +466,63 @@ async function dbManger(message, type) {
                 logger.logging(`Record of ${data[0]} not found`);
                 message.channel.send(`Record of ${data[0]} not found`);
             }
-            await message.delete();
-            await botMsg.delete();
-            await m.delete();
+            try {
+                await botMsg.delete();
+                await m.delete();
+            }
+            catch (err) {
+                console.log(err);
+            }
         });
     }
     if (type === 'delete') {
         logger.logging(`Try to delete record`);
         var botMsg = await message.channel.send(`Please enter the Link of record`);
         collector.on('collect', async (m) => {
-            let result = await db.deleteDBShopList(m.content);
-            if (result) {
-                logger.logging(`Record of ${m.content} successfully deleted`);
-                message.channel.send(`Record of ${m.content} successfully deleted`);
+            if (m.content === 'all') {
+                var result = await db.deleteAllShop();
             }
             else {
-                logger.logging(`Record of ${m.content} not found`);
-                message.channel.send(`Record of ${m.content} not found`);
+                var result = await db.deleteShop(m.content);
             }
-            await message.delete();
-            await botMsg.delete();
-            await m.delete();
+            if (result) {
+                logger.logging(`Successfully deleted ${result} document.`);
+                message.channel.send(`Successfully deleted ${result} document.`);
+            }
+            else {
+                logger.logging(`Record not found`);
+                message.channel.send(`Record not found`);
+            }
+            try {
+                await botMsg.delete();
+                await m.delete();
+            }
+            catch (err) {
+                console.log(err);
+            }
+        });
+    }
+    if (type === 'history') {
+        logger.logging(`Try to get history record`);
+        var botMsg = await message.channel.send(`Please enter the Link of record`);
+        collector.on('collect', async (m) => {
+            var result = await db.getShopHistory(m.content);
+            if (result.length) {
+                displayHistory(message.channel, result);
+                logger.logging(`Found ${result.length} record`);
+                message.channel.send(`Found ${result.length} record`);
+            }
+            else {
+                logger.logging(`Record not found`);
+                message.channel.send(`Record not found`);
+            }
+            try {
+                await botMsg.delete();
+                await m.delete();
+            }
+            catch (err) {
+                console.log(err);
+            }
         });
     }
 }
@@ -378,9 +541,7 @@ client.on('messageCreate', message => {
     let args = message.content.split(' ');
     if (args[0].slice(2) === 'rangedelete' || args[0].slice(2) === 'rd') {
         if (args.length != 3) {
-            message.channel.send({
-                content: 'Invalid arguments count\nUsage:  !!rangedelete  MessageID1  MessageID2'
-            });
+            message.channel.send('Invalid arguments count\nUsage:  !!rangedelete  MessageID1  MessageID2');
             return;
         }
         rangedelete(message);
@@ -390,9 +551,7 @@ client.on('messageCreate', message => {
         let size = 20;
         if (args.length == 2) {
             if (isNaN(parseInt(args[1], 10))) {
-                message.channel.send({
-                    content: 'Invalid arguments count\nUsage:  !!logs  (size)'
-                });
+                message.channel.send('Invalid arguments count\nUsage:  !!logs  (size)');
                 return;
             }
             size = parseInt(args[1], 10);
@@ -407,9 +566,7 @@ client.on('messageCreate', message => {
             return;
         }
         if (args.length != 2) {
-            message.channel.send({
-                content: 'Invalid arguments count\nUsage:  !!checker  on/off'
-            });
+            message.channel.send('Invalid arguments count\nUsage:  !!checker  on/off/display/price');
             return;
         }
         if (args[1] === 'on' && !checkerFlag) {
@@ -423,6 +580,31 @@ client.on('messageCreate', message => {
             if (checkerFlag) {
                 displayChecker(message.channel, checkerData);
             }
+            else {
+                message.channel.send({
+                    content: 'Checker off.'
+                });
+            }
+        }
+        if (args[1] === 'price') {
+            if (checkerFlag) {
+                displayPrice(message.channel, checkerData);
+            }
+            else {
+                message.channel.send({
+                    content: 'Checker off.'
+                });
+            }
+        }
+        if (args[1] === 'diff') {
+            if (checkerFlag) {
+                displayDiff(message);
+            }
+            else {
+                message.channel.send({
+                    content: 'Checker off.'
+                });
+            }
         }
     }
     if (args[0].slice(2) === 'db') {
@@ -430,26 +612,20 @@ client.on('messageCreate', message => {
             return;
         }
         if (args.length != 2) {
-            message.channel.send({
-                content: 'Invalid arguments count\nUsage:  !!db  create/update/delete'
-            });
+            message.channel.send('Invalid arguments count\nUsage:  !!db  create/update/delete/history');
             return;
         }
-        const options = ['create', 'update', 'delete'];
+        const options = ['create', 'update', 'delete', 'history'];
         if (options.map(o => args[1] === o).reduce((acc, curr) => acc || curr, false)) {
             dbManger(message, args[1]);
         }
         else {
-            message.channel.send({
-                content: 'Invalid options\nUsage:  !!db  create/update/delete'
-            });
+            message.channel.send('Invalid options\nUsage:  !!db  create/update/delete/history');
             return;
         }
     }
     if (args[0].slice(2) === 'help') {
-        message.channel.send({
-            content: '**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  (on/off/display)\n!!db  (create/update/delete)\n!!help`'
-        });
+        message.channel.send('**`command list:`**`\n!!rangedelete  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  (on/off/display/price)\n!!db  (create/update/delete/history)\n!!help`');
     }
 });
 client.login(process.env.TOKEN);
