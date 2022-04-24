@@ -242,7 +242,8 @@ async function displayPrice(channel, data) {
         components: [row]
     });
     const filter = (butInt) => {
-        return true;
+        const user = ['472053971406815242', '353364518795083778', '376419671039148032', '740470141028008036', '443703141519720448'];
+        return user.includes(butInt.user.id);
     };
     const collector = channel.createMessageComponentCollector({
         filter,
