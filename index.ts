@@ -259,7 +259,7 @@ async function displayPrice(channel: TextChannel, data: dataPool) {
   })
 
   const filter = (butInt: Interaction) => {
-    return butInt.user.id === '472053971406815242'
+    return true
   }
   const collector = channel.createMessageComponentCollector({
     filter,
