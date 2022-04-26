@@ -7,13 +7,19 @@
   "license": "MIT",
   "dependencies": {
     "@types/diff": "^5.0.2",
+    "@types/google-spreadsheet": "^3.2.1",
     "@types/jsdom": "^16.2.14",
     "diff": "^5.0.0",
     "discord.js": "^13.6.0",
     "dotenv": "^16.0.0",
+    "google-spreadsheet": "^3.2.0",
     "jsdom": "^19.0.0",
     "mongodb": "^4.4.1",
     "undici": "^4.13.0"
+  },
+  "scripts": {
+    "start": "index.js",
+    "postinstall": "tsc"
   },
   "engines": {
     "node": "16.x"

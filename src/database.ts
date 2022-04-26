@@ -1,9 +1,11 @@
 import {MongoClient, UpdateResult} from 'mongodb'
+import {logStack} from '../src/cache'
 import dotenv from 'dotenv'
 dotenv.config()
 
 const uri = process.env.DB_CONN_STRING
 const client = new MongoClient(uri as string)
+const logger = logStack.getLogger()
 
 export interface Shop {
   link: string
@@ -30,9 +32,6 @@ export async function getShopList() {
         projection: {_id: 0, modified: 0, deleted: 0}
       }
     )
-    if ((await shops.countDocuments()) === 0) {
-      console.warn('No documents found!')
-    }
     return await cursor.toArray()
   } finally {
     await client.close()
@@ -54,9 +53,6 @@ export async function getShopHistory(_link: string, last: boolean = false) {
         limit: last ? 2 : 50
       }
     )
-    if ((await shops.countDocuments()) === 0) {
-      console.warn('No documents found!')
-    }
     return await cursor.toArray()
   } finally {
     await client.close()
@@ -99,7 +95,7 @@ export async function updateShopList(
     const match = result.reduce((r, c) => r + c.matchedCount, 0)
     const update = result.reduce((r, c) => r + c.modifiedCount, 0)
     const upsert = result.reduce((r, c) => r + c.upsertedCount, 0)
-    console.log(`${match} document(s) matched the filter, updated ${update} document(s), upserted ${upsert} document(s)`)
+    logger.logging(`${match} document(s) matched the filter, updated ${update} document(s), upserted ${upsert} document(s)`)
     return [match, update, upsert]
   } finally {
     await client.close()
@@ -121,10 +117,10 @@ export async function discardShop(_link: string, _deleted: boolean = false) {
       }
     )
     if (result.modifiedCount) {
-      console.log(`Successfully discard old shop data.`)
+      logger.logging(`Successfully discard old shop data.`)
       return true
     } else {
-      console.log('No documents matched the query.')
+      logger.logging('No documents matched the query.')
       return false
     }
   } finally {
@@ -138,11 +134,6 @@ export async function deleteShop(_link: string) {
     const database = client.db('BotDB')
     const shops = database.collection<Shop>('ShopList')
     const result = await shops.deleteMany({link: _link})
-    if (result.deletedCount) {
-      console.log(`Successfully deleted ${result.deletedCount} document.`)
-    } else {
-      console.log('No documents matched the query. Deleted 0 documents.')
-    }
     return result.deletedCount
   } finally {
     await client.close()
@@ -156,11 +147,6 @@ export async function deleteAllShop() {
     const shops = database.collection<Shop>('ShopList')
     const query = {}
     const result = await shops.deleteMany(query)
-    if (result.deletedCount) {
-      console.log(`Successfully deleted ${result.deletedCount} document.`)
-    } else {
-      console.log('No documents matched the query. Deleted 0 documents.')
-    }
     return result.deletedCount
   } finally {
     await client.close()
