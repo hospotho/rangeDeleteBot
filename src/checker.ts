@@ -108,6 +108,7 @@ export class crawler {
     }
     logger.logging('Init checker.')
     const channel = this.channel
+    this.checkerFlag = true
     if (!channel) {
       logger.logging('Channel undefined.')
       return
