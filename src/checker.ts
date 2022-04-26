@@ -21,7 +21,7 @@ export class crawler {
     this.newFlag = true
   }
 
-  public async checker() {
+  public async start() {
     async function getShopList() {
       const searchPage = [
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
@@ -73,14 +73,14 @@ export class crawler {
           continue
         }
 
-        if (current.title[i] != old.title[oldIndex]) {
+        if (current.title[i] !== old.title[oldIndex]) {
           await db.discardShop(current.link[i])
           contentList[1] += `[${old.title[oldIndex]}](${current.link[i]})->\n[${current.title[i]}](${current.link[i]})\n`
           await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]])
           continue
         }
 
-        if (current.info[i] != old.info[oldIndex]) {
+        if (current.hash[i] !== old.hash[oldIndex]) {
           await db.discardShop(current.link[i])
           contentList[2] += `[${current.title[i]}](${current.link[i]})\n`
           await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]])
@@ -143,12 +143,12 @@ export class crawler {
       var modified = await compare(currentData)
       var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
 
-      if(this.newFlag || !modified){
+      if (this.newFlag || !modified) {
         displayChecker(channel, currentData)
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
       }
-      
+
       if (modified || !atLast) {
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
@@ -165,5 +165,15 @@ export class crawler {
     }
 
     channel.send(`Checker exited.`)
+  }
+
+  public exit() {
+    if (!this.checkerFlag) {
+      logger.logging('Checker is already stopped')
+      return
+    } else {
+      this.checkerFlag = false
+      return
+    }
   }
 }

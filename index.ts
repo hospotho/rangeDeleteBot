@@ -19,13 +19,12 @@ const client = new DiscordJS.Client({
 
 const logger = logStack.getLogger()
 const checkerData = dataPool.getDataPool()
-const worker = new crawler()
-const checker = worker.checker.bind(worker)
+const checker = new crawler()
 
 client.on('ready', async () => {
   logger.logging('The bot is ready.')
   const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
-  worker.channel = channel
+  checker.channel = channel
 
   logger.logging('Reading old data.')
   const data = await db.getShopList()
@@ -44,8 +43,7 @@ client.on('ready', async () => {
   if (client.user !== null && msg.author.id === client.user.id) {
     logger.logging('Auto restart checker.')
     await channel.send(`Auto restart checker.`)
-    worker.checkerFlag = true
-    checker()
+    checker.start()
   }
 })
 
@@ -118,9 +116,8 @@ client.on('messageCreate', message => {
       return
     }
     if (args[1] === 'on') {
-      if (!worker.checkerFlag) {
-        worker.checkerFlag = true
-        checker()
+      if (!checker.checkerFlag) {
+        checker.start()
         return
       } else {
         channel.send('Checker already on')
@@ -128,10 +125,11 @@ client.on('messageCreate', message => {
       }
     }
     if (args[1] === 'off') {
-      worker.checkerFlag = false
+      checker.exit()
+      channel.send('Checker is now turn off')
       return
     }
-    if (!worker.checkerFlag) {
+    if (!checker.checkerFlag) {
       channel.send('Checker off.')
       return
     }
