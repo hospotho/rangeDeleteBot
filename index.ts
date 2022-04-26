@@ -117,10 +117,15 @@ client.on('messageCreate', message => {
       channel.send('Invalid arguments count\nUsage:  !!checker  on/off/display/price/diff')
       return
     }
-    if (args[1] === 'on' && !worker.checkerFlag) {
-      worker.checkerFlag = true
-      checker()
-      return
+    if (args[1] === 'on') {
+      if (!worker.checkerFlag) {
+        worker.checkerFlag = true
+        checker()
+        return
+      } else {
+        channel.send('Checker already on')
+        return
+      }
     }
     if (args[1] === 'off') {
       worker.checkerFlag = false
