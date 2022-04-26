@@ -145,6 +145,7 @@ export class crawler {
       var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
 
       if (this.newFlag || !modified) {
+        this.newFlag = false
         displayChecker(channel, currentData)
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
