@@ -19,9 +19,7 @@
   },
   "scripts": {
     "start": "index.js",
-    "tsc": "./node_modules/typescript/bin/tsc",
-    "build": "tsc",
-    "postinstall": "npm run build"
+    "postinstall": "npm install typescript; tsc"
   },
   "engines": {
     "node": "16.x"
