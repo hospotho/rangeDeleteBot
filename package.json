@@ -19,7 +19,8 @@
   },
   "scripts": {
     "start": "index.js",
-    "postinstall": "tsc"
+    "tsc": "tsc",
+    "postinstall": "npm run tsc"
   },
   "engines": {
     "node": "16.x"
