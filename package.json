@@ -19,7 +19,8 @@
   },
   "scripts": {
     "start": "index.js",
-    "postinstall": "yarn add typescript; tsc"
+    "heroku-prebuild": "yarn add typescript",
+    "heroku-postbuild": "tsc"
   },
   "engines": {
     "node": "16.x"
