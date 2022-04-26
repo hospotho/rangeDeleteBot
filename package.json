@@ -19,7 +19,7 @@
   },
   "scripts": {
     "start": "index.js",
-    "postinstall": "npm install typescript; tsc"
+    "postinstall": "yarn add typescript; tsc"
   },
   "engines": {
     "node": "16.x"
