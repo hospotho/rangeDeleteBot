@@ -145,7 +145,10 @@ export class crawler {
 
       if(this.newFlag || !modified){
         displayChecker(channel, currentData)
+        botMsg.delete()
+        botMsg = await channel.send(`Last updated: ${timeString()}`)
       }
+      
       if (modified || !atLast) {
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
