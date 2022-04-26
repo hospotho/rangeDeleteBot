@@ -14,9 +14,11 @@ const checkerData = dataPool.getDataPool()
 export class crawler {
   channel?: TextChannel
   checkerFlag: boolean
+  newFlag: boolean
 
   constructor() {
     this.checkerFlag = false
+    this.newFlag = true
   }
 
   public async checker() {
@@ -139,10 +141,11 @@ export class crawler {
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
       var modified = await compare(currentData)
-      var atLast = await channel.messages.fetch({limit: 1}).then(msg => {
-        let lastMsg = msg.first()
-        return lastMsg?.id === botMsg.id
-      })
+      var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
+
+      if(this.newFlag || !modified){
+        displayChecker(channel, currentData)
+      }
       if (modified || !atLast) {
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
