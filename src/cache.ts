@@ -34,7 +34,7 @@ export class dataPool {
   info: Array<string>
   hash: Array<number>
   date: Array<number>
-  private static dataPool: dataPool
+  private static _instance: dataPool
 
   private constructor() {
     this.link = []
@@ -45,19 +45,16 @@ export class dataPool {
   }
 
   public static getDataPool() {
-    if (!dataPool.dataPool) {
-      dataPool.dataPool = new dataPool()
-    }
-    return dataPool.dataPool
+    return this._instance || (this._instance = new this());
   }
 
   public static getEmptyDataPool() {
-    return new dataPool()
+    return new this()
   }
 
   public static setNewDataPool(_dataPool: dataPool) {
-    if (dataPool.dataPool) {
-      dataPool.dataPool = _dataPool
+    if (this._instance) {
+      this._instance = _dataPool
     }
   }
 }
