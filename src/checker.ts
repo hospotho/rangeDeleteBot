@@ -15,10 +15,12 @@ export class crawler {
   channel?: TextChannel
   checkerFlag: boolean
   newFlag: boolean
+  updaeFlag: boolean
 
   constructor() {
     this.checkerFlag = false
     this.newFlag = true
+    this.updaeFlag = false
   }
 
   public async start() {
@@ -32,6 +34,8 @@ export class crawler {
 
       const result: Array<string> = []
       const titleList: Array<string> = []
+      const currentData = dataPool.getEmptyDataPool()
+
       for (const url of searchPage) {
         const {body} = await undici.request(url)
         const {window} = new jsdom.JSDOM(await body.text())
@@ -49,7 +53,25 @@ export class crawler {
           }
         })
       }
-      return result
+
+      for (const link of result) {
+        const {body} = await undici.request(link)
+        const {window} = new jsdom.JSDOM(await body.text())
+        const info = window.document.querySelector('#editer_main > div')
+        if (info) {
+          let images = window.document.querySelectorAll('#editer_main > div > img') as NodeListOf<HTMLImageElement>
+          let str = ''
+          images.forEach(img => {
+            str = str + img.src + '\n'
+          })
+          currentData.link.push(link)
+          currentData.title.push(window.document.title)
+          currentData.info.push(str + html2text(info.innerHTML))
+          currentData.hash.push(hashCode(info.innerHTML))
+          currentData.date.push(Date.now())
+        }
+      }
+      return currentData
     }
 
     async function compare(current: dataPool, old: dataPool = checkerData) {
@@ -117,27 +139,9 @@ export class crawler {
     let botMsg = await channel.send(`Fetching shop list.`)
 
     while (this.checkerFlag) {
+      this.updaeFlag = false
       logger.logging('Fetching shop list.')
-      const shopList = await getShopList()
-      var currentData = dataPool.getEmptyDataPool()
-
-      for (const link of shopList) {
-        const {body} = await undici.request(link)
-        const {window} = new jsdom.JSDOM(await body.text())
-        const info = window.document.querySelector('#editer_main > div')
-        if (info != null) {
-          let images = window.document.querySelectorAll('#editer_main > div > img') as NodeListOf<HTMLImageElement>
-          let str = ''
-          images.forEach(img => {
-            str = str + img.src + '\n'
-          })
-          currentData.link.push(link)
-          currentData.title.push(window.document.title)
-          currentData.info.push(str + html2text(info.innerHTML))
-          currentData.hash.push(hashCode(info.innerHTML))
-          currentData.date.push(Date.now())
-        }
-      }
+      var currentData = await getShopList()
 
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
@@ -162,7 +166,7 @@ export class crawler {
       //update per 10 min
       for (var i = 0; i < 600; i++) {
         await sleep(1000)
-        if (!this.checkerFlag) break
+        if (!this.checkerFlag || this.updaeFlag) break
       }
     }
 
