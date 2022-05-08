@@ -9,7 +9,6 @@ import {sleep, hashCode, html2text, timeString} from './utility'
 import {displayChecker} from '../command/display'
 
 const logger = logStack.getLogger()
-const checkerData = dataPool.getDataPool()
 
 export class crawler {
   channel?: TextChannel
@@ -74,7 +73,7 @@ export class crawler {
       return currentData
     }
 
-    async function compare(current: dataPool, old: dataPool = checkerData) {
+    async function compare(current: dataPool, old: dataPool) {
       var modified = false
       if (channel == null) return
       if (old.link.length === 0) {
@@ -139,13 +138,14 @@ export class crawler {
     let botMsg = await channel.send(`Fetching shop list.`)
 
     while (this.checkerFlag) {
+      const checkerData = dataPool.getDataPool()
       this.updaeFlag = false
       logger.logging('Fetching shop list.')
       var currentData = await getShopList()
 
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
-      var modified = await compare(currentData)
+      var modified = await compare(currentData, checkerData)
       var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
 
       if (this.newFlag && !modified) {
