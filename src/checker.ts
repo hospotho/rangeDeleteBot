@@ -179,6 +179,7 @@ export class crawler {
       return
     } else {
       this.checkerFlag = false
+      this.newFlag = true
       return
     }
   }
