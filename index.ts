@@ -28,7 +28,7 @@ client.on('ready', async () => {
 
   logger.logging('Reading old data.')
   const data = await db.getShopList()
-  logger.logging(`${data.length} record found`)
+  logger.logging(`${data.length} record found.`)
   for (const shop of data) {
     checkerData.link.push(shop.link)
     checkerData.title.push(shop.title)
@@ -58,7 +58,7 @@ client.on('messageCreate', message => {
   // check permissions
   if (message.author.id !== message.guild.ownerId) {
     if (!message.member.permissionsIn(channel).has(DiscordJS.Permissions.FLAGS.MANAGE_MESSAGES) || message.author.bot) {
-      logger.logging(`permission denied`)
+      logger.logging(`permission denied.`)
       return
     }
   }
@@ -97,7 +97,7 @@ client.on('messageCreate', message => {
   if (args[0].slice(2) === 'help') {
     if (message.guild.id === '923553217671987201') {
       channel.send(
-        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/display/price/diff\n!!database/db  (create/update/delete/history)\n!!googlesheet/gs  (id)  [85/all]\n!!help`'
+        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/update/display/price/diff\n!!database/db  (create/update/delete/history)\n!!googlesheet/gs  (id)  [85/all]\n!!help`'
       )
       return
     }
@@ -112,7 +112,7 @@ client.on('messageCreate', message => {
 
   if (args[0].slice(2) === 'checker') {
     if (args.length !== 2) {
-      channel.send('Invalid arguments count\nUsage:  !!checker  on/off/display/price/diff')
+      channel.send('Invalid arguments count\nUsage:  !!checker  on/off/update/display/price/diff')
       return
     }
     if (args[1] === 'on') {
@@ -120,18 +120,22 @@ client.on('messageCreate', message => {
         checker.start()
         return
       } else {
-        channel.send('Checker already on')
+        channel.send('Checker already on.')
         return
       }
     }
     if (args[1] === 'off') {
       checker.exit()
-      channel.send('Checker is now turn off')
+      channel.send('Checker is now off.')
       return
     }
     if (!checker.checkerFlag) {
       channel.send('Checker off.')
       return
+    }
+    if (args[1] === 'update') {
+      channel.send('Checker will start update by command.')
+      checker.updaeFlag = true
     }
     if (args[1] === 'display') {
       displayChecker(channel, checkerData)
@@ -145,7 +149,7 @@ client.on('messageCreate', message => {
       displayDiff(message)
       return
     }
-    channel.send('Invalid arguments option\nUsage:  !!checker  on/off/display/price/diff')
+    channel.send('Invalid arguments option\nUsage:  !!checker  on/off/update/display/price/diff')
     return
   }
 

@@ -15,14 +15,21 @@ export class crawler {
   checkerFlag: boolean
   newFlag: boolean
   updaeFlag: boolean
-
+  
   constructor() {
     this.checkerFlag = false
     this.newFlag = true
     this.updaeFlag = false
   }
-
+  
   public async start() {
+    const channel = this.channel
+    this.checkerFlag = true
+    if (!channel) {
+      logger.logging('Channel undefined.')
+      return
+    }
+
     async function getShopList() {
       const searchPage = [
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
@@ -73,7 +80,7 @@ export class crawler {
       return currentData
     }
 
-    async function compare(current: dataPool, old: dataPool) {
+    async function compareAndDisplay(current: dataPool, old: dataPool) {
       var modified = false
       if (channel == null) return
       if (old.link.length === 0) {
@@ -127,17 +134,8 @@ export class crawler {
       }
       return modified
     }
-    logger.logging('Init checker.')
-    const channel = this.channel
-    this.checkerFlag = true
-    if (!channel) {
-      logger.logging('Channel undefined.')
-      return
-    }
-    await channel.send(`Init checker.`)
-    let botMsg = await channel.send(`Fetching shop list.`)
 
-    while (this.checkerFlag) {
+    const eventLoop = async () => {
       const checkerData = dataPool.getDataPool()
       this.updaeFlag = false
       logger.logging('Fetching shop list.')
@@ -145,14 +143,16 @@ export class crawler {
 
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
-      var modified = await compare(currentData, checkerData)
+      var modified = await compareAndDisplay(currentData, checkerData)
       var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
+      dataPool.setNewDataPool(currentData)
 
-      if (this.newFlag && !modified) {
+      if (this.newFlag) {
         this.newFlag = false
         displayChecker(channel, currentData)
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
+        return
       }
 
       if (modified || !atLast) {
@@ -161,15 +161,20 @@ export class crawler {
       } else {
         botMsg.edit(`Last updated: ${timeString()}`)
       }
-      dataPool.setNewDataPool(currentData)
+      return
+    }
 
+    logger.logging('Init checker.')
+    await channel.send(`Init checker.`)
+    let botMsg = await channel.send(`Fetching shop list.`)
+    while (this.checkerFlag) {
+      eventLoop()
       //update per 10 min
       for (var i = 0; i < 600; i++) {
         await sleep(1000)
         if (!this.checkerFlag || this.updaeFlag) break
       }
     }
-
     channel.send(`Checker exited.`)
   }
 
@@ -180,6 +185,7 @@ export class crawler {
     } else {
       this.checkerFlag = false
       this.newFlag = true
+      this.updaeFlag = false
       return
     }
   }

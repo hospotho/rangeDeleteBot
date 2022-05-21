@@ -1,5 +1,5 @@
 import {Message, TextChannel} from 'discord.js'
-import {msToMinSec} from '../src/utility'
+import {msToMinSec, sleep} from '../src/utility'
 import {logStack} from '../src/cache'
 
 const logger = logStack.getLogger()
@@ -56,7 +56,7 @@ export async function rangedelete(msg: Message) {
   await message.delete()
   logger.logging(`Range delete start by ${message.author.username} at #${channel.name}`)
   let botMsg = await channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`)
-  await channel.send(`<:gbf_makira_gun:685481376400932895>`)
+  let emoji = await channel.send(`<:gbf_makira_gun:685481376400932895>`)
 
   let msgs = await channel.messages.fetch({
     after: msg1.id,
@@ -83,4 +83,7 @@ export async function rangedelete(msg: Message) {
   let timeCost = msToMinSec(Date.now() - startTime)
   logger.logging(`Complete, ${count} messages deleted in ${timeCost}`)
   await botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`)
+  await sleep(10000)
+  botMsg.delete()
+  emoji.delete()
 }
