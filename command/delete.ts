@@ -1,5 +1,5 @@
 import {Message, TextChannel} from 'discord.js'
-import {msToMinSec, sleep} from '../src/utility'
+import {msToMinSec} from '../src/utility'
 import {logStack} from '../src/cache'
 
 const logger = logStack.getLogger()
@@ -13,15 +13,18 @@ export async function rangedelete(msg: Message) {
   var msgID2 = args[2]
 
   if (isNaN(parseInt(msgID1)) || isNaN(parseInt(msgID2))) {
-    channel.send(`Invaild messageID.`)
+    let msg = await channel.send(`Invaild messageID.`)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
   if (msgID1 === msgID2) {
-    channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
+    let msg = await channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
-  if (parseInt(msgID1) > parseInt(msgID2)) {
-    channel.send(`Message(1) is newer than Message(2).`)
+  if (BigInt(msgID1) > BigInt(msgID2)) {
+    let msg = await channel.send(`Message(1) is newer than Message(2).`)
+    setTimeout(() => msg.delete(), 5000)
     let temp = msgID1
     msgID1 = msgID2
     msgID2 = temp
@@ -47,17 +50,20 @@ export async function rangedelete(msg: Message) {
 
   const msg1 = await fetch(msgID1)
   if (!msg1) {
-    channel.send(`Message(1) ${msgID1} not found.`)
+    let msg = await channel.send(`Message(1) ${msgID1} not found.`)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
   const msg2 = await fetch(msgID2)
   if (!msg2) {
-    channel.send(`Message(2) ${msgID2} not found.`)
+    let msg = await channel.send(`Message(2) ${msgID2} not found.`)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
 
   if (channel != msg1.channel || msg1.channel != msg2.channel) {
-    channel.send(`Messages need to be in same channel.`)
+    let msg = await channel.send(`Messages need to be in same channel.`)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
 
@@ -92,7 +98,8 @@ export async function rangedelete(msg: Message) {
   let timeCost = msToMinSec(Date.now() - startTime)
   logger.logging(`Complete, ${count} messages deleted in ${timeCost}`)
   await botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`)
-  await sleep(10000)
-  botMsg.delete()
-  emoji.delete()
+  setTimeout(() => {
+    botMsg.delete()
+    emoji.delete()
+  }, 5000)
 }
