@@ -29,7 +29,9 @@ export async function dbManger(message: Message, type: string) {
         await botMsg.delete()
         await m.delete()
       } catch (err) {
-        console.log(err)
+        if (err instanceof Error) {
+          logger.logging(err.message)
+        }
       }
     })
   }
@@ -54,7 +56,9 @@ export async function dbManger(message: Message, type: string) {
         await botMsg.delete()
         await m.delete()
       } catch (err) {
-        console.log(err)
+        if (err instanceof Error) {
+          logger.logging(err.message)
+        }
       }
     })
   }
@@ -79,7 +83,9 @@ export async function dbManger(message: Message, type: string) {
         await botMsg.delete()
         await m.delete()
       } catch (err) {
-        console.log(err)
+        if (err instanceof Error) {
+          logger.logging(err.message)
+        }
       }
     })
   }
@@ -100,7 +106,9 @@ export async function dbManger(message: Message, type: string) {
         await botMsg.delete()
         await m.delete()
       } catch (err) {
-        console.log(err)
+        if (err instanceof Error) {
+          logger.logging(err.message)
+        }
       }
     })
   }

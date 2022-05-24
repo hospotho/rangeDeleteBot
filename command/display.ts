@@ -7,7 +7,7 @@ const logger = logStack.getLogger()
 
 export async function displayChecker(channel: TextChannel, data: dataPool) {
   const length = data.link.length
-  console.log(`Display data, length:  ${length}.`)
+  logger.logging(`Display data, length:  ${length}.`)
   channel.send(`Display data, length:  ${length}.`)
   for (var i = 0; i < length - (length % 5); i += 5) {
     var content = ''
@@ -136,7 +136,9 @@ export async function displayDiff(message: Message) {
       await botMsg.delete()
       await m.delete()
     } catch (err) {
-      console.log(err)
+      if (err instanceof Error) {
+        logger.logging(err.message)
+      }
     }
   })
 }

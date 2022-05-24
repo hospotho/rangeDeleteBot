@@ -21,6 +21,7 @@ export async function rangedelete(msg: Message) {
     return
   }
   if (msgID1 > msgID2) {
+    channel.send(`Message(1) is newer than Message(2).`)
     msgID1 = msgID1 + msgID2
     msgID2 = msgID1 - msgID2
     msgID1 = msgID1 - msgID2
