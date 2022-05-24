@@ -9,10 +9,10 @@ export async function rangedelete(msg: Message) {
   const channel = message.channel as TextChannel
 
   const args = message.content.split(' ')
-  var msgID1 = parseInt(args[1])
-  var msgID2 = parseInt(args[2])
+  var msgID1 = args[1]
+  var msgID2 = args[2]
 
-  if (isNaN(msgID1) || isNaN(msgID2)) {
+  if (isNaN(parseInt(msgID1)) || isNaN(parseInt(msgID2))) {
     channel.send(`Invaild messageID.`)
     return
   }
@@ -20,11 +20,11 @@ export async function rangedelete(msg: Message) {
     channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
     return
   }
-  if (msgID1 > msgID2) {
+  if (parseInt(msgID1) > parseInt(msgID2)) {
     channel.send(`Message(1) is newer than Message(2).`)
-    msgID1 = msgID1 + msgID2
-    msgID2 = msgID1 - msgID2
-    msgID1 = msgID1 - msgID2
+    let temp = msgID1
+    msgID1 = msgID2
+    msgID2 = temp
   }
 
   async function fetch(_id: string, _ch: TextChannel = channel): Promise<Message | undefined> {
@@ -45,12 +45,12 @@ export async function rangedelete(msg: Message) {
     }
   }
 
-  const msg1 = await fetch(String(msgID1))
+  const msg1 = await fetch(msgID1)
   if (!msg1) {
     channel.send(`Message(1) ${msgID1} not found.`)
     return
   }
-  const msg2 = await fetch(String(msgID2))
+  const msg2 = await fetch(msgID2)
   if (!msg2) {
     channel.send(`Message(2) ${msgID2} not found.`)
     return
