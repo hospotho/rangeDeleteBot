@@ -15,13 +15,13 @@ export class crawler {
   checkerFlag: boolean
   newFlag: boolean
   updaeFlag: boolean
-  
+
   constructor() {
     this.checkerFlag = false
     this.newFlag = true
     this.updaeFlag = false
   }
-  
+
   public async start() {
     const channel = this.channel
     this.checkerFlag = true
@@ -43,7 +43,10 @@ export class crawler {
       const currentData = dataPool.getEmptyDataPool()
 
       for (const url of searchPage) {
-        const {body} = await undici.request(url)
+        const {body, statusCode} = await undici.request(url)
+        if (statusCode !== 200) {
+          return statusCode
+        }
         const {window} = new jsdom.JSDOM(await body.text())
         const shops = window.document.querySelectorAll('.w-currency')
         shops.forEach(shop => {
@@ -140,6 +143,11 @@ export class crawler {
       this.updaeFlag = false
       logger.logging('Fetching shop list.')
       var currentData = await getShopList()
+      if (typeof currentData === 'number') {
+        logger.logging(`Request search page fail, statusCode: ${currentData}.`)
+        channel.send(`Request search page fail, statusCode: ${currentData}.`)
+        return
+      }
 
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
