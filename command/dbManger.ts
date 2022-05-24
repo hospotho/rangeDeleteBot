@@ -62,10 +62,11 @@ export async function dbManger(message: Message, type: string) {
     logger.logging(`Try to delete record`)
     var botMsg = await message.channel.send(`Please enter the Link of record`)
     collector.on('collect', async m => {
+      let result
       if (m.content === 'all') {
-        var result = await db.deleteAllShop()
+        result = await db.deleteAllShop()
       } else {
-        var result = await db.deleteShop(m.content)
+        result = await db.deleteShop(m.content)
       }
       if (result) {
         logger.logging(`Successfully deleted ${result} document.`)
