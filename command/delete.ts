@@ -9,13 +9,21 @@ export async function rangedelete(msg: Message) {
   const channel = message.channel as TextChannel
 
   const args = message.content.split(' ')
-  if (args[1] === args[2]) {
+  var msgID1 = parseInt(args[1])
+  var msgID2 = parseInt(args[2])
+
+  if (isNaN(msgID1) || isNaN(msgID2)) {
+    channel.send(`Invaild messageID.`)
+    return
+  }
+  if (msgID1 === msgID2) {
     channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
     return
   }
-  if (parseInt(args[1]) > parseInt(args[2])) {
-    channel.send(`Message(1) is newer than Message(2).`)
-    return
+  if (msgID1 > msgID2) {
+    msgID1 = msgID1 + msgID2
+    msgID2 = msgID1 - msgID2
+    msgID1 = msgID1 - msgID2
   }
 
   async function fetch(_id: string, _ch: TextChannel = channel): Promise<Message | undefined> {
@@ -36,14 +44,14 @@ export async function rangedelete(msg: Message) {
     }
   }
 
-  const msg1 = await fetch(args[1])
+  const msg1 = await fetch(String(msgID1))
   if (!msg1) {
-    channel.send(`Message(1) ${args[1]} not found.`)
+    channel.send(`Message(1) ${msgID1} not found.`)
     return
   }
-  const msg2 = await fetch(args[2])
+  const msg2 = await fetch(String(msgID2))
   if (!msg2) {
-    channel.send(`Message(2) ${args[2]} not found.`)
+    channel.send(`Message(2) ${msgID2} not found.`)
     return
   }
 
@@ -55,7 +63,7 @@ export async function rangedelete(msg: Message) {
   let startTime = Date.now()
   await message.delete()
   logger.logging(`Range delete start by ${message.author.username} at #${channel.name}`)
-  let botMsg = await channel.send(`Starting to delete messages from ${args[1]} to ${args[2]}.`)
+  let botMsg = await channel.send(`Starting to delete messages from ${msgID1} to ${msgID2}.`)
   let emoji = await channel.send(`<:gbf_makira_gun:685481376400932895>`)
 
   let msgs = await channel.messages.fetch({
