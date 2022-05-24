@@ -136,6 +136,7 @@ client.on('messageCreate', message => {
     if (args[1] === 'update') {
       channel.send('Checker will start update by command.')
       checker.updaeFlag = true
+      return
     }
     if (args[1] === 'display') {
       displayChecker(channel, checkerData)

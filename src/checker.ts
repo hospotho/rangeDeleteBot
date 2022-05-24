@@ -154,21 +154,19 @@ export class crawler {
         botMsg = await channel.send(`Last updated: ${timeString()}`)
         return
       }
-
       if (modified || !atLast) {
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
       } else {
         botMsg.edit(`Last updated: ${timeString()}`)
       }
-      return
     }
 
     logger.logging('Init checker.')
     await channel.send(`Init checker.`)
     let botMsg = await channel.send(`Fetching shop list.`)
     while (this.checkerFlag) {
-      eventLoop()
+      await eventLoop()
       //update per 10 min
       for (var i = 0; i < 600; i++) {
         await sleep(1000)
