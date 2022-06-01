@@ -59,6 +59,31 @@ export async function getShopHistory(_link: string, last: boolean = false) {
   }
 }
 
+export async function insertShop(link: string, title: string, info: string, hash: number) {
+  try {
+    await client.connect()
+    const database = client.db('BotDB')
+    const shops = database.collection<Shop>('ShopList')
+    const result = await shops.insertOne({
+      link: link,
+      title: title,
+      info: info,
+      hash: hash,
+      date: Date.now(),
+      modified: false,
+      deleted: false
+    })
+
+    logger.logging(`inserted 1 document`)
+  } catch (e) {
+    if (e instanceof Error) {
+      logger.logging(e.message)
+    }
+  } finally {
+    await client.close()
+  }
+}
+
 export async function updateShopList(
   links: Array<string>,
   titles: Array<string>,

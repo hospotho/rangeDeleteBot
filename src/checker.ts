@@ -100,21 +100,21 @@ export class crawler {
 
         if (oldIndex === -1) {
           contentList[0] += `[${current.title[i]}](${current.link[i]})\n`
-          await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]])
+          await db.insertShop(current.link[i], current.title[i], current.info[i], current.hash[i])
           continue
         }
 
         if (current.title[i] !== old.title[oldIndex]) {
           await db.discardShop(current.link[i])
           contentList[1] += `[${old.title[oldIndex]}](${current.link[i]})->\n[${current.title[i]}](${current.link[i]})\n`
-          await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]])
+          await db.insertShop(current.link[i], current.title[i], current.info[i], current.hash[i])
           continue
         }
 
         if (current.hash[i] !== old.hash[oldIndex]) {
           await db.discardShop(current.link[i])
           contentList[2] += `[${current.title[i]}](${current.link[i]})\n`
-          await db.updateShopList([current.link[i]], [current.title[i]], [current.info[i]], [current.hash[i]])
+          await db.insertShop(current.link[i], current.title[i], current.info[i], current.hash[i])
         }
       }
 

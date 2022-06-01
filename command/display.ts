@@ -9,6 +9,7 @@ export async function displayChecker(channel: TextChannel, data: dataPool) {
   const length = data.link.length
   logger.logging(`Display data, length:  ${length}.`)
   channel.send(`Display data, length:  ${length}.`)
+
   for (var i = 0; i < length - (length % 5); i += 5) {
     var content = ''
     content += `[${data.title[i]}](${data.link[i]})\n`
@@ -21,6 +22,7 @@ export async function displayChecker(channel: TextChannel, data: dataPool) {
       embeds: [embed]
     })
   }
+
   if (length % 5 > 0) {
     var content = ''
     for (var i = Math.floor(length / 5) * 5; i < length; i++) {
@@ -56,6 +58,7 @@ export async function displayHistory(channel: TextChannel, data: Array<db.Shop>)
     filter,
     time: 1000 * 60 * 3
   })
+
   collector.on('collect', async (i: MessageComponentInteraction) => {
     if (i.customId === 'left') {
       index ? index-- : (index = data.length - 1)
@@ -98,6 +101,7 @@ export async function displayPrice(channel: TextChannel, data: dataPool) {
     filter,
     time: 1000 * 60 * 3
   })
+
   collector.on('collect', async (i: MessageComponentInteraction) => {
     if (i.customId === 'left') {
       index ? index-- : (index = data.link.length - 1)
@@ -114,11 +118,12 @@ export async function displayPrice(channel: TextChannel, data: dataPool) {
 }
 
 export async function displayDiff(message: Message) {
+  logger.logging(`Try to diff record`)
+  var botMsg = await message.channel.send(`Please enter Link of the shop to diff.`)
+
   const filter = (m: Message) => m.author.id === message.author.id
   const collector = message.channel.createMessageCollector({filter, time: 15000})
 
-  logger.logging(`Try to diff record`)
-  var botMsg = await message.channel.send(`Please enter Link of the shop to diff.`)
   collector.on('collect', async m => {
     const data = await db.getShopHistory(m.content, true)
     if (data.length !== 2) {
@@ -126,18 +131,20 @@ export async function displayDiff(message: Message) {
       message.channel.send('Older record not found')
       return
     }
+
     const embed = new MessageEmbed().addFields({
       name: `info diff`,
       value: `[${data[0].title}](${data[0].link})` + '\n' + diff(data[0].info, data[1].info)
     })
     logger.logging(`successfully diff ${m.content}`)
     message.channel.send({embeds: [embed]})
+
     try {
       await botMsg.delete()
       await m.delete()
-    } catch (err) {
-      if (err instanceof Error) {
-        logger.logging(err.message)
+    } catch (e) {
+      if (e instanceof Error) {
+        logger.logging(e.message)
       }
     }
   })

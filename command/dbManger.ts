@@ -34,6 +34,7 @@ export async function dbManger(message: Message, type: string) {
         }
       }
     })
+    return
   }
   if (type === 'update') {
     logger.logging(`Try to update record`)
@@ -61,6 +62,7 @@ export async function dbManger(message: Message, type: string) {
         }
       }
     })
+    return
   }
   if (type === 'delete') {
     logger.logging(`Try to delete record`)
@@ -88,6 +90,7 @@ export async function dbManger(message: Message, type: string) {
         }
       }
     })
+    return
   }
   if (type === 'history') {
     logger.logging(`Try to get history record`)
@@ -111,5 +114,6 @@ export async function dbManger(message: Message, type: string) {
         }
       }
     })
+    return
   }
 }
