@@ -133,8 +133,8 @@ export async function displayDiff(message: Message) {
     }
 
     const embed = new MessageEmbed().addFields({
-      name: `info diff`,
-      value: `[${data[0].title}](${data[0].link})` + '\n' + diff(data[0].info, data[1].info)
+      name: 'info diff',
+      value: `[${data[0].title}](${m.content})\n${diff(data[0].info, data[1].info)}`
     })
     logger.logging(`successfully diff ${m.content}`)
     message.channel.send({embeds: [embed]})
