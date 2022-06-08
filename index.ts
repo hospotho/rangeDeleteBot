@@ -75,9 +75,8 @@ client.on('messageCreate', message => {
   }
 
   if (args[0].slice(2) === 'logs') {
-    if (message.author.id !== '472053971406815242') {
-      return
-    }
+    if (message.author.id !== '472053971406815242') return
+
     let size = 20
     if (args.length > 2) {
       channel.send('Invalid arguments count\nUsage:  !!logs  (size)')
@@ -97,7 +96,7 @@ client.on('messageCreate', message => {
   if (args[0].slice(2) === 'help') {
     if (message.guild.id === '923553217671987201') {
       channel.send(
-        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/update/display/price/diff\n!!database/db  (create/update/delete/history)\n!!googlesheet/gs  (id)  [85/all]\n!!help`'
+        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/update/display/price/view/diff\n!!database/db  (create/update/delete/history)\n!!googlesheet/gs  (id)  [85/all]\n!!help`'
       )
       return
     }
@@ -106,13 +105,11 @@ client.on('messageCreate', message => {
   }
 
   //commands only for studio
-  if (message.guild.id !== '923553217671987201') {
-    return
-  }
+  if (message.guild.id !== '923553217671987201') return
 
   if (args[0].slice(2) === 'checker') {
     if (args.length !== 2) {
-      channel.send('Invalid arguments count\nUsage:  !!checker  on/off/update/display/price/diff')
+      channel.send('Invalid arguments count\nUsage:  !!checker  on/off/update/display/price/view/diff')
       return
     }
     if (args[1] === 'on') {
@@ -146,24 +143,27 @@ client.on('messageCreate', message => {
       displayPrice(channel, checkerData)
       return
     }
+    if (args[1] === 'view') {
+      displayPrice(channel, checkerData, true)
+      return
+    }
     if (args[1] === 'diff') {
       displayDiff(message)
       return
     }
-    channel.send('Invalid arguments option\nUsage:  !!checker  on/off/update/display/price/diff')
+    channel.send('Invalid arguments option\nUsage:  !!checker  on/off/update/display/price/view/diff')
     return
   }
 
   if (args[0].slice(2) === 'database' || args[0].slice(2) === 'db') {
-    if (message.author.id !== '472053971406815242') {
-      return
-    }
+    if (message.author.id !== '472053971406815242') return
+
     if (args.length !== 2) {
       channel.send('Invalid arguments count\nUsage:  !!database/db  create/update/delete/history')
       return
     }
     const options = ['create', 'update', 'delete', 'history']
-    if (options.map(o => args[1] === o).reduce((acc, curr) => acc || curr, false)) {
+    if (options.includes(args[1])) {
       dbManger(message, args[1])
       return
     } else {

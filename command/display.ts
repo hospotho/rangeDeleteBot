@@ -74,13 +74,13 @@ export async function displayHistory(channel: TextChannel, data: Array<db.Shop>)
   })
 }
 
-export async function displayPrice(channel: TextChannel, data: dataPool) {
+export async function displayPrice(channel: TextChannel, data: dataPool, full: boolean = false) {
   var index = 0
 
   const embed = () =>
     new MessageEmbed().addFields({
       name: `${index + 1}/${data.link.length}`,
-      value: `[${data.title[index]}](${data.link[index]})` + '\n' + text2price(data.info[index])
+      value: `[${data.title[index]}](${data.link[index]})` + '\n' + full ? data.info[index] : text2price(data.info[index])
     })
 
   const row = new MessageActionRow()
