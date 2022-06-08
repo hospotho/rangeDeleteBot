@@ -79,6 +79,7 @@ export async function rangedelete(msg: Message) {
   let tmp = msg2.id
 
   let msgs = await channel.messages.fetch({
+    after: botMsg.id,
     before: tmp,
     limit: 99
   })
@@ -91,6 +92,7 @@ export async function rangedelete(msg: Message) {
     await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
     let tmp = msgs.lastKey()
     msgs = await channel.messages.fetch({
+      after: botMsg.id,
       before: tmp,
       limit: 100
     })
@@ -103,6 +105,7 @@ export async function rangedelete(msg: Message) {
     await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
     let tmp = msgs.lastKey()
     msgs = await channel.messages.fetch({
+      after: botMsg.id,
       before: tmp,
       limit: 20
     })
