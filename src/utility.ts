@@ -23,13 +23,22 @@ export function html2text(str: string): string {
 
 export function text2price(str: string): string {
   var result = ''
-  var arr = str.split('\n')
+  var arr = str.replaceAll(/\n+/g, '\n').split('\n')
   arr.forEach(text => {
     if (text.match(/\d{3}/) && !text.startsWith('https://uploadcdn.8591.com.tw')) {
       result += text + '\n'
     }
   })
   return result
+}
+
+export function text2view(str: string): string {
+  var result = str
+  const regex = /https:\/\/uploadcdn\.8591\.com\.tw\/ware\/\d{8}\/\d+[A-Z0-9]{2}\..+/g
+  result = result.replace(regex, '')
+  result = str.trim()
+  result = result.replaceAll(/\n+/g, '\n')
+  return result.substring(0, 900)
 }
 
 export function msToMinSec(ms: number) {

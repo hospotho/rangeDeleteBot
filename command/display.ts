@@ -1,7 +1,7 @@
 import {Message, TextChannel, MessageEmbed, MessageActionRow, MessageButton, Interaction, MessageComponentInteraction} from 'discord.js'
 import {logStack, dataPool} from '../src/cache'
 import * as db from '../src/database'
-import {timeString, text2price, diff} from '../src/utility'
+import {timeString, text2price, diff, text2view} from '../src/utility'
 
 const logger = logStack.getLogger()
 
@@ -80,7 +80,7 @@ export async function displayPrice(channel: TextChannel, data: dataPool, full: b
   const embed = () =>
     new MessageEmbed().addFields({
       name: `${index + 1}/${data.link.length}`,
-      value: `[${data.title[index]}](${data.link[index]})` + '\n' + full ? data.info[index] : text2price(data.info[index])
+      value: `[${data.title[index]}](${data.link[index]})` + '\n' + full ? text2view(data.info[index]) : text2price(data.info[index])
     })
 
   const row = new MessageActionRow()
