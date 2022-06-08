@@ -75,11 +75,10 @@ export async function rangedelete(msg: Message) {
   let emoji = await channel.send(`<:gbf_makira_gun:685481376400932895>`)
 
   const toDay = 1 / 1000 / 60 / 60 / 24
-  let count = 1
-  let tmp = msg2.id
+  var count = 1
 
   let msgs = await channel.messages.fetch({
-    before: tmp,
+    before: msg2.id,
     limit: 99
   })
   msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp && m.createdTimestamp >= startTime - 13.9 / toDay).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
@@ -89,9 +88,8 @@ export async function rangedelete(msg: Message) {
   while (!msgs.has(msg1.id) && msgs.size) {
     logger.logging(`${count} messages deleted`)
     await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
-    let tmp = msgs.lastKey()
     msgs = await channel.messages.fetch({
-      before: tmp,
+      before: msg2.id,
       limit: 100
     })
     msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp && m.createdTimestamp >= startTime - 13.9 / toDay).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
@@ -101,9 +99,8 @@ export async function rangedelete(msg: Message) {
   while (!msgs.has(msg1.id)) {
     logger.logging(`${count} messages deleted`)
     await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
-    let tmp = msgs.lastKey()
     msgs = await channel.messages.fetch({
-      before: tmp,
+      before: msg2.id,
       limit: 20
     })
     msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
