@@ -74,26 +74,41 @@ export async function rangedelete(msg: Message) {
   let botMsg = await channel.send(`Starting to delete messages from ${msgID1} to ${msgID2}.`)
   let emoji = await channel.send(`<:gbf_makira_gun:685481376400932895>`)
 
+  const toDay = 1 / 1000 / 60 / 60 / 24
+  let count = 1
+  let tmp = msg2.id
+
   let msgs = await channel.messages.fetch({
-    after: msg1.id,
+    before: tmp,
     limit: 99
   })
-  msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-
-  await msg1.delete()
-  let count = 1
+  msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp && m.createdTimestamp >= startTime - 13.9 / toDay).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+  await msg2.delete()
   await channel.bulkDelete(msgs).then(msg => (count += msg.size))
 
-  while (!msgs.has(msg2.id)) {
+  while (!msgs.has(msg1.id) && msgs.size) {
     logger.logging(`${count} messages deleted`)
     await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
     let tmp = msgs.lastKey()
     msgs = await channel.messages.fetch({
-      after: tmp,
+      before: tmp,
       limit: 100
     })
-    msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+    msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp && m.createdTimestamp >= startTime - 13.9 / toDay).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     await channel.bulkDelete(msgs).then(msg => (count += msg.size))
+  }
+
+  while (!msgs.has(msg1.id)) {
+    logger.logging(`${count} messages deleted`)
+    await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
+    let tmp = msgs.lastKey()
+    msgs = await channel.messages.fetch({
+      before: tmp,
+      limit: 20
+    })
+    msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
+    count += msgs.size
+    await Promise.all(msgs.map(msg => msg.delete()))
   }
 
   let timeCost = msToMinSec(Date.now() - startTime)
