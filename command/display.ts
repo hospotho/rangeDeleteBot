@@ -76,11 +76,12 @@ export async function displayHistory(channel: TextChannel, data: Array<db.Shop>)
 
 export async function displayPrice(channel: TextChannel, data: dataPool, full: boolean = false) {
   var index = 0
+  var textFunc = full ? text2view : text2price
 
   const embed = () =>
     new MessageEmbed().addFields({
       name: `${index + 1}/${data.link.length}`,
-      value: `[${data.title[index]}](${data.link[index]})` + '\n' + full ? text2view(data.info[index]) : text2price(data.info[index])
+      value: `[${data.title[index]}](${data.link[index]})\n${textFunc(data.info[index])}`
     })
 
   const row = new MessageActionRow()
@@ -104,10 +105,10 @@ export async function displayPrice(channel: TextChannel, data: dataPool, full: b
 
   collector.on('collect', async (i: MessageComponentInteraction) => {
     if (i.customId === 'left') {
-      index ? index-- : (index = data.link.length - 1)
+      index ? index-- : index = data.link.length - 1
     }
     if (i.customId === 'right') {
-      index < data.link.length - 1 ? index++ : (index = 0)
+      index < data.link.length - 1 ? index++ : index = 0
     }
     botmsg = await botmsg.edit({
       embeds: [embed()],
