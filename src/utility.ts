@@ -34,7 +34,7 @@ export function text2price(str: string): string {
 
 export function text2view(str: string): string {
   var result = str
-  const regex = /https:\/\/uploadcdn\.8591\.com\.tw\/ware\/\d{8}\/\d+[A-Z0-9]{2}\..+/g
+  const regex = /https:\/\/uploadcdn\.8591\.com\.tw\/.+/g
   result = result.replace(regex, '')
   result = str.trim()
   result = result.replaceAll(/\n+/g, '\n')
