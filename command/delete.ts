@@ -101,7 +101,7 @@ export async function rangedelete(msg: Message) {
     await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
     msgs = await channel.messages.fetch({
       before: msg2.id,
-      limit: 20
+      limit: 50
     })
     msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     count += msgs.size
