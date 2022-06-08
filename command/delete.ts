@@ -14,17 +14,18 @@ export async function rangedelete(msg: Message) {
 
   if (isNaN(parseInt(msgID1)) || isNaN(parseInt(msgID2))) {
     let msg = await channel.send(`Invaild messageID.`)
-    setTimeout(msg.delete, 5000)
+    //delete() must inside a function
+    setTimeout(() => msg.delete(), 5000)
     return
   }
   if (msgID1 === msgID2) {
     let msg = await channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
-    setTimeout(msg.delete, 5000)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
   if (BigInt(msgID1) > BigInt(msgID2)) {
     let msg = await channel.send(`Message(1) is newer than Message(2).`)
-    setTimeout(msg.delete, 5000)
+    setTimeout(() => msg.delete(), 5000)
     let temp = msgID1
     msgID1 = msgID2
     msgID2 = temp
@@ -51,19 +52,19 @@ export async function rangedelete(msg: Message) {
   const msg1 = await fetch(msgID1)
   if (!msg1) {
     let msg = await channel.send(`Message(1) ${msgID1} not found.`)
-    setTimeout(msg.delete, 5000)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
   const msg2 = await fetch(msgID2)
   if (!msg2) {
     let msg = await channel.send(`Message(2) ${msgID2} not found.`)
-    setTimeout(msg.delete, 5000)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
 
   if (channel != msg1.channel || msg1.channel != msg2.channel) {
     let msg = await channel.send(`Messages need to be in same channel.`)
-    setTimeout(msg.delete, 5000)
+    setTimeout(() => msg.delete(), 5000)
     return
   }
 
@@ -92,7 +93,7 @@ export async function rangedelete(msg: Message) {
       limit: 100
     })
     msgs = msgs.filter(m => m.createdTimestamp <= msg2.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
-    await channel.bulkDelete(msgs).then(msg => count += msg.size)
+    await channel.bulkDelete(msgs).then(msg => (count += msg.size))
   }
 
   let timeCost = msToMinSec(Date.now() - startTime)
