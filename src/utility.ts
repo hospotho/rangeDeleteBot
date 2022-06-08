@@ -48,18 +48,7 @@ export function timeString(ms: number = 0) {
   const day = time.getDate()
   const hour = time.getHours()
   const min = time.getMinutes()
-  const string =
-    (month > 9 ? '' : '0') +
-    month +
-    '/' +
-    (day > 9 ? '' : '0') +
-    day +
-    '  ' +
-    (hour > 9 ? '' : '0') +
-    hour +
-    ':' +
-    (min > 9 ? '' : '0') +
-    min
+  const string = (month > 9 ? '' : '0') + month + '/' + (day > 9 ? '' : '0') + day + '  ' + (hour > 9 ? '' : '0') + hour + ':' + (min > 9 ? '' : '0') + min
   return string
 }
 

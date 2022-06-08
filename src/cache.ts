@@ -45,7 +45,7 @@ export class dataPool {
   }
 
   public static getDataPool() {
-    return this._instance || (this._instance = new this());
+    return this._instance || (this._instance = new this())
   }
 
   public static getEmptyDataPool() {
