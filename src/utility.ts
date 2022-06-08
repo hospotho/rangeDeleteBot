@@ -36,7 +36,7 @@ export function text2view(str: string): string {
   var result = str
   const regex = /https:\/\/uploadcdn\.8591\.com\.tw\/.+/g
   result = result.replace(regex, '')
-  result = str.trim()
+  result = result.trim()
   result = result.replaceAll(/\n+/g, '\n')
   return result.substring(0, 900)
 }
