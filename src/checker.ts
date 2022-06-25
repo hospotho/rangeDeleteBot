@@ -5,7 +5,6 @@ import jsdom from 'jsdom'
 import {logStack, dataPool} from './cache'
 import * as db from './database'
 import {sleep, hashCode, html2text, timeString} from './utility'
-
 import {displayChecker} from '../command/display'
 
 const logger = logStack.getLogger()
@@ -35,7 +34,7 @@ export class crawler {
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
       ]
-      const Wlist = ['代打', '試煉', '競速', 'SS']
+      const Wlist = ['試煉', '競速', 'SS']
       const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇']
 
       const result: Array<string> = []
@@ -87,7 +86,6 @@ export class crawler {
       var modified = false
       if (channel == null) return
       if (old.link.length === 0) {
-        displayChecker(channel, current)
         await db.updateShopList(current.link, current.title, current.info, current.hash)
         return true
       }
@@ -153,19 +151,22 @@ export class crawler {
         return
       }
 
+      if (this.newFlag) {
+        this.newFlag = false
+        botMsg.delete()
+        displayChecker(channel, currentData)
+        await compareAndDisplay(currentData, checkerData)
+        dataPool.setNewDataPool(currentData)
+        botMsg = await channel.send(`Last updated: ${timeString()}`)
+        return
+      }
+
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
       var modified = await compareAndDisplay(currentData, checkerData)
       var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
       dataPool.setNewDataPool(currentData)
 
-      if (this.newFlag) {
-        this.newFlag = false
-        displayChecker(channel, currentData)
-        botMsg.delete()
-        botMsg = await channel.send(`Last updated: ${timeString()}`)
-        return
-      }
       if (modified || !atLast) {
         botMsg.delete()
         botMsg = await channel.send(`Last updated: ${timeString()}`)
@@ -175,7 +176,10 @@ export class crawler {
     }
 
     logger.logging('Init checker.')
-    await channel.send(`Init checker.`)
+    let initMsg = await channel.send(`Init checker.`)
+    setTimeout(() => {
+      initMsg.delete()
+    }, 60000)
     let botMsg = await channel.send(`Fetching shop list.`)
     while (this.checkerFlag) {
       await eventLoop()
@@ -185,6 +189,7 @@ export class crawler {
         if (!this.checkerFlag || this.updaeFlag) break
       }
     }
+    logger.logging(`Checker exited.`)
     channel.send(`Checker exited.`)
   }
 

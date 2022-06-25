@@ -98,10 +98,10 @@ export async function rangedelete(msg: Message) {
 
   while (!msgs.has(msg1.id)) {
     logger.logging(`${count} messages deleted`)
-    await botMsg.edit(`Still deleting, ${count} messages deleted so far`)
+    await botMsg.edit(`Deleting in slow mode, ${count} messages deleted so far`)
     msgs = await channel.messages.fetch({
       before: msg2.id,
-      limit: 50
+      limit: 19
     })
     msgs = msgs.filter(m => m.createdTimestamp >= msg1.createdTimestamp).sort((a, b) => a.createdTimestamp - b.createdTimestamp)
     count += msgs.size
