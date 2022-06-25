@@ -7,7 +7,7 @@ import {crawler} from './src/checker'
 import {rangedelete} from './command/delete'
 import {displayChecker, displayPrice, displayDiff} from './command/display'
 import {dbManger} from './command/dbManger'
-import {shReader} from './command/shReader'
+import {shReader, shSubmitTime} from './command/shManger'
 
 import dotenv from 'dotenv'
 dotenv.config()
@@ -96,7 +96,7 @@ client.on('messageCreate', message => {
   if (args[0].slice(2) === 'help') {
     if (message.guild.id === '923553217671987201') {
       channel.send(
-        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/update/display/price/view/diff\n!!database/db  (create/update/delete/history)\n!!googlesheet/gs  (id)  [85/all]\n!!help`'
+        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/update/display/price/view/diff\n!!database/db  create/update/delete/history\n!!googlesheet/gs  id/85id/DC  (85/all/state)\n!!submit  id/85id/DC  time  v_url  (7/t/w)\n!!help`'
       )
       return
     }
@@ -173,19 +173,27 @@ client.on('messageCreate', message => {
   }
 
   if (args[0].slice(2) === 'googlesheet' || args[0].slice(2) === 'gs') {
-    if ((args.length !== 2 && args.length !== 3) || !Number.isInteger(Number(args[1]))) {
-      channel.send('Invalid arguments count\nUsage:  !!googlesheet/gs  id  [85/all]')
+    if (args.length !== 2 && args.length !== 3) {
+      channel.send('Invalid arguments count\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
       return
     }
-    const options = ['', '85', 'all']
+    const options = ['', '85', 'all', 'state']
     var type = args.length === 2 ? '' : args[2]
     if (options.includes(type)) {
-      shReader(channel, Number(args[1]), type)
+      shReader(channel, args[1], type)
       return
     } else {
-      channel.send('Invalid options\nUsage:  !!googlesheet/gs  id  [85/all]')
+      channel.send('Invalid options\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
       return
     }
+  }
+  
+  if (args[0].slice(2) === 'submit') {
+    if (args.length !== 4 && args.length !== 5) {
+      channel.send('Invalid arguments count\nUsage:  !!submit  id/85id/DC  time  v_url  (7/t/w)')
+      return
+    }
+    shSubmitTime(message, args[1], args[2], args[3], args[4])
   }
 })
 
