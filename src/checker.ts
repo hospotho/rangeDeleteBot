@@ -34,51 +34,69 @@ export class crawler {
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchType=4',
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
       ]
-      const Wlist = ['試煉', '競速', 'SS']
-      const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇']
+      const Wlist = ['代打', '試煉', '競速', 'SS']
+      const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇', '青之女王', '5200']
 
       const result: Array<string> = []
       const titleList: Array<string> = []
       const currentData = dataPool.getEmptyDataPool()
 
-      for (const url of searchPage) {
-        const {body, statusCode} = await undici.request(url)
-        if (statusCode !== 200) {
-          return statusCode
+      async function safeRequest(url: string) {
+        var count = 0
+        var response = await undici.request(url)
+        while (response.statusCode !== 200 && count < 5) {
+          await sleep(1000)
+          count++
+          response = await undici.request(url)
         }
-        const {window} = new jsdom.JSDOM(await body.text())
-        const shops = window.document.querySelectorAll('.w-currency')
-        shops.forEach(shop => {
-          const title = shop.querySelector('.c-title-line.c-title-head > a') as HTMLAnchorElement
-          if (title != null) {
-            if (titleList.indexOf(title.title) != -1) return
-            let w = Wlist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
-            let b = !Blist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
-            if (w && b) {
-              result.push('https://www.8591.com.tw' + title.href.substring(1))
-              titleList.push(title.title)
-            }
-          }
-        })
+        if (response.statusCode !== 200) {
+          throw new Error(`Fail to fetch ${url} within 5 tries, statusCode: ${response.statusCode}.`)
+        }
+        return response
       }
 
-      for (const link of result) {
-        const {body} = await undici.request(link)
-        const {window} = new jsdom.JSDOM(await body.text())
-        const info = window.document.querySelector('#editer_main > div')
-        if (info) {
-          let images = window.document.querySelectorAll('#editer_main > div > img') as NodeListOf<HTMLImageElement>
-          let str = ''
-          images.forEach(img => {
-            str = str + img.src + '\n'
+      try {
+        for (const url of searchPage) {
+          const {body} = await safeRequest(url)
+          const {window} = new jsdom.JSDOM(await body.text())
+          const shops = window.document.querySelectorAll('.w-currency')
+          shops.forEach(shop => {
+            const title = shop.querySelector('.c-title-line.c-title-head > a') as HTMLAnchorElement
+            if (title != null) {
+              if (titleList.indexOf(title.title) != -1) return
+              let w = Wlist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
+              let b = !Blist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
+              if (w && b) {
+                result.push('https://www.8591.com.tw' + title.href.substring(1))
+                titleList.push(title.title)
+              }
+            }
           })
-          currentData.link.push(link)
-          currentData.title.push(window.document.title)
-          currentData.info.push(str + html2text(info.innerHTML))
-          currentData.hash.push(hashCode(info.innerHTML))
-          currentData.date.push(Date.now())
+        }
+
+        for (const link of result) {
+          const {body} = await safeRequest(link)
+          const {window} = new jsdom.JSDOM(await body.text())
+          const info = window.document.querySelector('#editer_main > div')
+          if (info) {
+            let images = window.document.querySelectorAll('#editer_main > div > img') as NodeListOf<HTMLImageElement>
+            let str = ''
+            images.forEach(img => {
+              str = str + img.src + '\n'
+            })
+            currentData.link.push(link)
+            currentData.title.push(window.document.title)
+            currentData.info.push(str + html2text(info.innerHTML))
+            currentData.hash.push(hashCode(info.innerHTML))
+            currentData.date.push(Date.now())
+          }
+        }
+      } catch (e) {
+        if (e instanceof Error) {
+          return e
         }
       }
+
       return currentData
     }
 
@@ -145,9 +163,9 @@ export class crawler {
       this.updaeFlag = false
       logger.logging('Fetching shop list.')
       var currentData = await getShopList()
-      if (typeof currentData === 'number') {
-        logger.logging(`Request search page fail, statusCode: ${currentData}.`)
-        channel.send(`Request search page fail, statusCode: ${currentData}.`)
+      if (currentData instanceof Error) {
+        logger.logging(currentData.message)
+        channel.send(currentData.message)
         return
       }
 
