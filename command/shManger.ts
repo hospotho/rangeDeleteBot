@@ -52,7 +52,7 @@ export async function shReader(channel: TextChannel, id: string, option: string)
 
   //id of raw data
   if (option === '') {
-    const sheet = doc.sheetsById['1568688647']
+    const sheet = doc.sheetsById[process.env.sheetID as string]
     await sheet.loadCells(`A${_id + 1}:H${_id + 1}`)
     const result = ['id', String(_id)]
     result.push('85ID')
