@@ -64,135 +64,44 @@ client.on('messageCreate', message => {
 
   let args = message.content.split(' ')
 
-  if (args[0].slice(2) === 'rangedelete' || args[0].slice(2) === 'rd') {
-    if (args.length !== 3) {
-      channel.send('Invalid arguments count\nUsage:  !!rangedelete  MessageID1  MessageID2')
+  //commands
+  switch (args[0].slice(2)) {
+    case 'rangedelete':
+    case 'rd': {
+      rangedelete(message)
       return
     }
-    rangedelete(message)
-    return
-  }
-
-  if (args[0].slice(2) === 'logs') {
-    if (message.author.id !== '472053971406815242') return
-
-    let size = 20
-    if (args.length > 2) {
-      channel.send('Invalid arguments count\nUsage:  !!logs  (size)')
+    case 'logs': {
+      displayLog(message)
       return
     }
-    if (args.length === 2) {
-      if (!Number.isInteger(Number(args[1]))) {
-        channel.send('Invalid arguments\nUsage:  !!logs  (size)')
-        return
-      }
-      size = Number(args[1])
-    }
-    let log = '`' + logger.getLog(size).reduce((a, b) => a + '\n' + b) + '`'
-    channel.send(log)
-  }
-
-  if (args[0].slice(2) === 'help') {
-    if (message.guild.id === '923553217671987201') {
-      channel.send(
-        '**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!checker  on/off/update/display/price/view/diff\n!!database/db  create/update/delete/history\n!!googlesheet/gs  id/85id/DC  (85/all/state)\n!!submit  id/85id/DC  time  v_url  (7/t/w)\n!!help`'
-      )
+    case 'help': {
+      displayHelp(message)
       return
     }
-    channel.send('**`command list:`**`\n!!rangedelete/rd  MessageID1  MessageID2\n!!logs  (Size)\n!!help`')
-    return
   }
 
   //commands only for studio
   if (message.guild.id !== '923553217671987201') return
-
-  if (args[0].slice(2) === 'checker') {
-    if (args.length !== 2) {
-      channel.send('Invalid arguments count\nUsage:  !!checker  on/off/update/display/price/view/diff')
+  switch (args[0].slice(2)) {
+    case 'checker': {
+      checker.handleCommand(message)
       return
     }
-    if (args[1] === 'on') {
-      if (!checker.checkerFlag) {
-        checker.start()
-        return
-      } else {
-        channel.send('Checker already on.')
-        return
-      }
-    }
-    if (args[1] === 'off') {
-      checker.exit()
-      channel.send('Checker is now off.')
+    case 'database':
+    case 'db': {
+      dbManger(message)
       return
     }
-    if (!checker.checkerFlag) {
-      channel.send('Checker off.')
+    case 'googlesheet':
+    case 'gs': {
+      shReader(message)
       return
     }
-    if (args[1] === 'update') {
-      channel.send('Checker will start update by command.')
-      checker.updaeFlag = true
+    case 'submit': {
+      shSubmitTime(message)
       return
     }
-    if (args[1] === 'display') {
-      displayChecker(channel, checkerData)
-      return
-    }
-    if (args[1] === 'price') {
-      displayPrice(channel, checkerData)
-      return
-    }
-    if (args[1] === 'view') {
-      displayPrice(channel, checkerData, true)
-      return
-    }
-    if (args[1] === 'diff') {
-      displayDiff(message)
-      return
-    }
-    channel.send('Invalid arguments option\nUsage:  !!checker  on/off/update/display/price/view/diff')
-    return
-  }
-
-  if (args[0].slice(2) === 'database' || args[0].slice(2) === 'db') {
-    if (message.author.id !== '472053971406815242') return
-
-    if (args.length !== 2) {
-      channel.send('Invalid arguments count\nUsage:  !!database/db  create/update/delete/history')
-      return
-    }
-    const options = ['create', 'update', 'delete', 'history']
-    if (options.includes(args[1])) {
-      dbManger(message, args[1])
-      return
-    } else {
-      channel.send('Invalid options\nUsage:  !!database/db  create/update/delete/history')
-      return
-    }
-  }
-
-  if (args[0].slice(2) === 'googlesheet' || args[0].slice(2) === 'gs') {
-    if (args.length !== 2 && args.length !== 3) {
-      channel.send('Invalid arguments count\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
-      return
-    }
-    const options = ['', '85', 'all', 'state']
-    var type = args.length === 2 ? '' : args[2]
-    if (options.includes(type)) {
-      shReader(channel, args[1], type)
-      return
-    } else {
-      channel.send('Invalid options\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
-      return
-    }
-  }
-  
-  if (args[0].slice(2) === 'submit') {
-    if (args.length !== 4 && args.length !== 5) {
-      channel.send('Invalid arguments count\nUsage:  !!submit  id/85id/DC  time  v_url  (7/t/w)')
-      return
-    }
-    shSubmitTime(message, args[1], args[2], args[3], args[4])
   }
 })
 
