@@ -9,8 +9,14 @@ export async function rangedelete(msg: Message) {
   const channel = message.channel as TextChannel
 
   const args = message.content.split(' ')
-  var msgID1 = args[1]
-  var msgID2 = args[2]
+
+  if (args.length !== 3) {
+    channel.send('Invalid arguments count\nUsage:  !!rangedelete  MessageID1  MessageID2')
+    return
+  }
+
+  let msgID1 = args[1]
+  let msgID2 = args[2]
 
   if (isNaN(parseInt(msgID1)) || isNaN(parseInt(msgID2))) {
     let msg = await channel.send(`Invaild messageID.`)
