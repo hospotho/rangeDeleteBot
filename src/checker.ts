@@ -1,11 +1,11 @@
-import {TextChannel, MessageEmbed} from 'discord.js'
+import {TextChannel, Message, MessageEmbed} from 'discord.js'
 import undici from 'undici'
 import jsdom from 'jsdom'
 
 import {logStack, dataPool} from './cache'
 import * as db from './database'
 import {sleep, hashCode, html2text, timeString} from './utility'
-import {displayChecker} from '../command/display'
+import {displayChecker, displayPrice, displayDiff} from '../command/display'
 
 const logger = logStack.getLogger()
 
@@ -42,8 +42,8 @@ export class crawler {
       const currentData = dataPool.getEmptyDataPool()
 
       async function safeRequest(url: string) {
-        var count = 0
-        var response = await undici.request(url)
+        let count = 0
+        let response = await undici.request(url)
         while (response.statusCode !== 200 && count < 5) {
           await sleep(1000)
           count++
@@ -99,17 +99,17 @@ export class crawler {
     }
 
     async function compareAndDisplay(current: dataPool, old: dataPool) {
-      var modified = false
+      let modified = false
       if (channel == null) return
       if (old.link.length === 0) {
         await db.updateShopList(current.link, current.title, current.info, current.hash)
         return true
       }
 
-      var contentList: Array<string> = ['', '', '', '']
+      let contentList: Array<string> = ['', '', '', '']
       const tag = ['new shop', 'title change', 'info change', 'shop delete']
 
-      for (var i = 0; i < current.link.length; i++) {
+      for (let i = 0; i < current.link.length; i++) {
         const oldIndex = old.link.indexOf(current.link[i])
         let discard = false
         let insert = false
@@ -136,7 +136,7 @@ export class crawler {
         if (insert) await db.insertShop(current.link[i], current.title[i], current.info[i], current.hash[i])
       }
 
-      for (var i = 0; i < old.link.length; i++) {
+      for (let i = 0; i < old.link.length; i++) {
         const newIndex = current.link.indexOf(old.link[i])
         if (newIndex === -1) {
           await db.discardShop(old.link[i], true)
@@ -144,14 +144,13 @@ export class crawler {
         }
       }
 
-      for (var i = 0; i < contentList.length; i++) {
-        if (contentList[i].length > 0) {
-          modified = true
-          const embed = new MessageEmbed().addFields({name: tag[i], value: contentList[i]})
-          channel.send({
-            embeds: [embed]
-          })
-        }
+      for (let i = 0; i < contentList.length; i++) {
+        if (contentList[i].length === 0) continue
+        modified = true
+        const embed = new MessageEmbed().addFields({name: tag[i], value: contentList[i]})
+        await channel.send({
+          embeds: [embed]
+        })
       }
       return modified
     }
@@ -160,7 +159,7 @@ export class crawler {
       const checkerData = dataPool.getDataPool()
       this.updaeFlag = false
       logger.logging('Fetching shop list.')
-      var currentData = await getShopList()
+      let currentData = await getShopList()
       if (currentData instanceof Error) {
         logger.logging(currentData.message)
         channel.send(currentData.message)
@@ -170,7 +169,7 @@ export class crawler {
       if (this.newFlag) {
         this.newFlag = false
         botMsg.delete()
-        displayChecker(channel, currentData)
+        await displayChecker(channel, currentData)
         await compareAndDisplay(currentData, checkerData)
         dataPool.setNewDataPool(currentData)
         botMsg = await channel.send(`Last updated: ${timeString()}`)
@@ -179,8 +178,8 @@ export class crawler {
 
       logger.logging('Checking data.')
       await botMsg.edit(`Checking data.`)
-      var modified = await compareAndDisplay(currentData, checkerData)
-      var atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
+      let modified = await compareAndDisplay(currentData, checkerData)
+      let atLast = await channel.messages.fetch({limit: 1}).then(msgs => msgs.first()?.id === botMsg.id)
       dataPool.setNewDataPool(currentData)
 
       if (modified || !atLast) {
@@ -192,7 +191,7 @@ export class crawler {
     }
 
     logger.logging('Init checker.')
-    let initMsg = await channel.send(`Init checker.`)
+    const initMsg = await channel.send(`Init checker.`)
     setTimeout(() => {
       initMsg.delete()
     }, 60000)
@@ -200,7 +199,7 @@ export class crawler {
     while (this.checkerFlag) {
       await eventLoop()
       //update per 10 min
-      for (var i = 0; i < 600; i++) {
+      for (let i = 0; i < 600; i++) {
         await sleep(1000)
         if (!this.checkerFlag || this.updaeFlag) break
       }
@@ -210,14 +209,58 @@ export class crawler {
   }
 
   public exit() {
+    this.checkerFlag = false
+    this.newFlag = true
+    this.updaeFlag = false
+    return
+  }
+
+  public handleCommand(message: Message) {
+    const channel = message.channel as TextChannel
+    const args = message.content.split(' ')
+
+    if (args.length !== 2) {
+      channel.send('Invalid arguments count\nUsage:  !!checker  on/off/update/display/price/view/diff')
+      return
+    }
+    if (args[1] === 'on') {
+      !this.checkerFlag ? this.start() : channel.send('Checker already on.')
+      return
+    }
     if (!this.checkerFlag) {
-      logger.logging('Checker is already stopped')
+      channel.send('Checker off.')
       return
-    } else {
-      this.checkerFlag = false
-      this.newFlag = true
-      this.updaeFlag = false
-      return
+    }
+    switch (args[1]) {
+      case 'off': {
+        this.exit()
+        channel.send('Checker is now off.')
+        return
+      }
+      case 'update': {
+        channel.send('Checker will start update now.')
+        this.updaeFlag = true
+        return
+      }
+      case 'display': {
+        displayChecker(channel)
+        return
+      }
+      case 'price': {
+        displayPrice(channel)
+        return
+      }
+      case 'view': {
+        displayPrice(channel, true)
+        return
+      }
+      case 'diff': {
+        displayDiff(message)
+        return
+      }
+      default:
+        channel.send('Invalid arguments option\nUsage:  !!checker  on/off/update/display/price/view/diff')
+        return
     }
   }
 }

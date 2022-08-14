@@ -5,9 +5,9 @@ export function sleep(ms: number) {
 }
 
 export function hashCode(str: string): number {
-  var hash = 0
+  let hash = 0
   if (str.length === 0) return hash
-  for (var i = 0; i < str.length; i++) {
+  for (let i = 0; i < str.length; i++) {
     hash = hash * 31 + str.charCodeAt(i)
     hash |= 0 // Convert to 32bit integer
   }
@@ -22,18 +22,18 @@ export function html2text(str: string): string {
 }
 
 export function text2price(str: string): string {
-  var result = ''
-  var arr = str.replaceAll(/\n+/g, '\n').split('\n')
-  arr.forEach(text => {
+  let result = ''
+  let arr = str.replaceAll(/\n+/g, '\n').split('\n')
+  for (const text of arr) {
     if (text.match(/\d{3}/) && !text.startsWith('https://uploadcdn.8591.com.tw')) {
       result += text + '\n'
     }
-  })
+  }
   return result
 }
 
 export function text2view(str: string): string {
-  var result = str
+  let result = str
   const regex = /https:\/\/uploadcdn\.8591\.com\.tw\/.+/g
   result = result.replace(regex, '')
   result = result.trim()
@@ -48,11 +48,7 @@ export function msToMinSec(ms: number) {
 }
 
 export function timeString(ms: number = 0) {
-  if (ms === 0) {
-    var time = new Date()
-  } else {
-    var time = new Date(ms)
-  }
+  const time = ms === 0 ? new Date() : new Date(ms)
   const month = time.getMonth() + 1
   const day = time.getDate()
   const hour = time.getHours()
@@ -63,14 +59,14 @@ export function timeString(ms: number = 0) {
 
 export function diff(oldStr: string, newStr: string) {
   const diff = jsDiff.diffLines(oldStr, newStr)
-  var result = ''
-  diff.forEach(line => {
+  let result = ''
+  for (const line of diff) {
     if (line.removed) {
       result += line.value + ' ->\n'
     }
     if (line.added) {
       result += line.value + '\n'
     }
-  })
+  }
   return result
 }

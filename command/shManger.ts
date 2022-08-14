@@ -5,8 +5,24 @@ import {displaySheet} from './display'
 import dotenv from 'dotenv'
 dotenv.config()
 
-export async function shReader(channel: TextChannel, id: string, option: string) {
-  var typeFlag = 0 || +/^\d{1,3}$/.test(id) || 2 * +/^\d{5,8}$/.test(id) || 3 * +/^.{2,}$/.test(id)
+export async function shReader(message: Message) {
+  const channel = message.channel as TextChannel
+  const args = message.content.split(' ')
+
+  if (args.length !== 2 && args.length !== 3) {
+    channel.send('Invalid arguments count\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
+    return
+  }
+
+  const options = ['', '85', 'all', 'state']
+  const option = args.length === 2 ? '' : args[2]
+  if (!options.includes(option)) {
+    channel.send('Invalid options\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
+    return
+  }
+
+  const id = args[1]
+  let typeFlag = 0 || +/^\d{1,3}$/.test(id) || 2 * +/^\d{5,8}$/.test(id) || 3 * +/^.{2,}$/.test(id)
   if (!typeFlag) {
     channel.send('Invalid ID\nUsage:  !!googlesheet/gs  id/85id/DC  (85/all/state)')
     return
@@ -19,7 +35,7 @@ export async function shReader(channel: TextChannel, id: string, option: string)
   } as ServiceAccountCredentials)
   await doc.loadInfo()
 
-  var _id = -1
+  let _id = -1
   if (typeFlag === 1) {
     _id = Number(id) || -1
   }
@@ -122,25 +138,41 @@ export async function shReader(channel: TextChannel, id: string, option: string)
   }
 }
 
-export async function shSubmitTime(message: Message, id: string, time: string, v_url: string, booster = '') {
+export async function shSubmitTime(message: Message) {
+  const args = message.content.split(' ')
   const channel = message.channel
+
+  if (args.length !== 4 && args.length !== 5) {
+    channel.send('Invalid arguments count\nUsage:  !!submit  id/85id/DC  time  v_url  (7/t/w)')
+    return
+  }
+
+  const id = args[1]
+  const time = args[2]
+  const v_url = args[3]
+  const booster = args[4] || ''
+
   const boosterList: {[tag: string]: string} = {'Willie#4865': 'Willie', '7貓Lemon#1664': 'cat', 'tony#7515': 'Tony', w: 'Willie', '7': 'cat', t: 'Tony'}
   const name = boosterList[booster] || boosterList[message.author.tag] || ''
 
   if (!name && booster) {
-    return channel.send('Invalid booster\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    channel.send('Invalid booster\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    return
   }
   if (!name && !booster) {
-    return channel.send('Invalid sender, not in the list\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    channel.send('Invalid sender, not in the list\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    return
   }
 
-  var typeFlag = 0 || +/^\d{1,3}$/.test(id) || 2 * +/^\d{5,8}$/.test(id) || 3 * +/^.{2,}$/.test(id)
+  let typeFlag = 0 || +/^\d{1,3}$/.test(id) || 2 * +/^\d{5,8}$/.test(id) || 3 * +/^.{2,}$/.test(id)
   if (!typeFlag) {
-    return channel.send('Invalid ID\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    channel.send('Invalid ID\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    return
   }
 
   if (!/\d{1,3}\.\d{2}/.test(time)) {
-    return channel.send('Invalid time\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    channel.send('Invalid time\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    return
   }
 
   const doc = new GoogleSpreadsheet(process.env.docID)
@@ -150,7 +182,7 @@ export async function shSubmitTime(message: Message, id: string, time: string, v
   } as ServiceAccountCredentials)
   await doc.loadInfo()
 
-  var _id = -1
+  let _id = -1
   if (typeFlag === 1) {
     _id = Number(id) || -1
   }
@@ -177,7 +209,8 @@ export async function shSubmitTime(message: Message, id: string, time: string, v
   }
 
   if (_id === -1) {
-    return channel.send('ID not found\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    channel.send('ID not found\nUsage:  !!submit  id/85id/DC  time(xx.xx)  v_url  (7/t/w)')
+    return
   }
 
   const sheet = doc.sheetsByIndex[0]
