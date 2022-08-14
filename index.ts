@@ -46,6 +46,22 @@ client.on('ready', async () => {
   }
 })
 
+const commandDict: {[key: string]: Function} = {
+  rangedelete: rangedelete,
+  rd: rangedelete,
+  logs: displayLog,
+  help: displayHelp
+}
+
+const studioCommandDict: {[key: string]: Function} = {
+  checker: checker.handleCommand,
+  database: dbManger,
+  db: dbManger,
+  googlesheet: shReader,
+  gs: shReader,
+  submit: shSubmitTime
+}
+
 client.on('messageCreate', message => {
   if (!message.content.startsWith(prefix)) return
 
@@ -62,46 +78,18 @@ client.on('messageCreate', message => {
     }
   }
 
-  let args = message.content.split(' ')
+  const args = message.content.split(' ')
+  const cmd = args[0].slice(2)
 
-  //commands
-  switch (args[0].slice(2)) {
-    case 'rangedelete':
-    case 'rd': {
-      rangedelete(message)
-      return
-    }
-    case 'logs': {
-      displayLog(message)
-      return
-    }
-    case 'help': {
-      displayHelp(message)
-      return
-    }
+  if (cmd in commandDict) {
+    commandDict[cmd](message)
+    return
   }
 
   //commands only for studio
-  if (message.guild.id !== '923553217671987201') return
-  switch (args[0].slice(2)) {
-    case 'checker': {
-      checker.handleCommand(message)
-      return
-    }
-    case 'database':
-    case 'db': {
-      dbManger(message)
-      return
-    }
-    case 'googlesheet':
-    case 'gs': {
-      shReader(message)
-      return
-    }
-    case 'submit': {
-      shSubmitTime(message)
-      return
-    }
+  if (message.guild.id === '923553217671987201' && cmd in studioCommandDict) {
+    studioCommandDict[cmd](message)
+    return
   }
 })
 
