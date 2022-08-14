@@ -18,13 +18,13 @@ const client = new DiscordJS.Client({
 })
 
 const logger = logStack.getLogger()
-const checkerData = dataPool.getDataPool()
 const checker = new crawler()
 
 client.on('ready', async () => {
   logger.logging('The bot is ready.')
   const channel = (await client.channels.fetch('938732984973017129')) as TextChannel
   checker.channel = channel
+  const checkerData = dataPool.getDataPool()
 
   logger.logging('Reading old data.')
   const data = await db.getShopList()
