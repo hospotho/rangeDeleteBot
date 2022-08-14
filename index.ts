@@ -5,7 +5,7 @@ import * as db from './src/database'
 import {crawler} from './src/checker'
 
 import {rangedelete} from './command/delete'
-import {displayChecker, displayPrice, displayDiff} from './command/display'
+import {displayLog, displayHelp} from './command/display'
 import {dbManger} from './command/dbManger'
 import {shReader, shSubmitTime} from './command/shManger'
 
