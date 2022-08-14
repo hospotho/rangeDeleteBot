@@ -35,7 +35,7 @@ export class crawler {
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
       ]
       const Wlist = ['代打', '試煉', '競速', 'SS']
-      const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇', '青之女王', '5200']
+      const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇', '青之女王', '5200', 'abs']
 
       const result: Array<string> = []
       const titleList: Array<string> = []
@@ -59,17 +59,16 @@ export class crawler {
         for (const url of searchPage) {
           const {body} = await safeRequest(url)
           const {window} = new jsdom.JSDOM(await body.text())
-          const shops = window.document.querySelectorAll('.w-currency')
+          const shops = window.document.querySelectorAll<HTMLAnchorElement>('#wrapper > div > div > div > div:first-child > a[title]')
+
           shops.forEach(shop => {
-            const title = shop.querySelector('.c-title-line.c-title-head > a') as HTMLAnchorElement
-            if (title != null) {
-              if (titleList.indexOf(title.title) != -1) return
-              let w = Wlist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
-              let b = !Blist.map(text => title.title.includes(text)).reduce((acc, curr) => acc || curr, false)
-              if (w && b) {
-                result.push('https://www.8591.com.tw' + title.href.substring(1))
-                titleList.push(title.title)
-              }
+            const title = shop.title
+            if (!title || titleList.indexOf(title) !== -1) return
+            let w = Wlist.map(text => title.includes(text)).reduce((acc, curr) => acc || curr, false)
+            let b = !Blist.map(text => title.includes(text)).reduce((acc, curr) => acc || curr, false)
+            if (w && b) {
+              result.push('https://www.8591.com.tw' + shop.href.substring(1))
+              titleList.push(title)
             }
           })
         }
@@ -78,18 +77,17 @@ export class crawler {
           const {body} = await safeRequest(link)
           const {window} = new jsdom.JSDOM(await body.text())
           const info = window.document.querySelector('#editer_main > div')
-          if (info) {
-            let images = window.document.querySelectorAll('#editer_main > div > img') as NodeListOf<HTMLImageElement>
-            let str = ''
-            images.forEach(img => {
-              str = str + img.src + '\n'
-            })
-            currentData.link.push(link)
-            currentData.title.push(window.document.title)
-            currentData.info.push(str + html2text(info.innerHTML))
-            currentData.hash.push(hashCode(info.innerHTML))
-            currentData.date.push(Date.now())
-          }
+          if (!info) continue
+          let images = window.document.querySelectorAll<HTMLImageElement>('#editer_main > div > img')
+          let str = ''
+          images.forEach(img => {
+            str = str + img.src + '\n'
+          })
+          currentData.link.push(link)
+          currentData.title.push(window.document.title)
+          currentData.info.push(str + html2text(info.innerHTML))
+          currentData.hash.push(hashCode(info.innerHTML))
+          currentData.date.push(Date.now())
         }
       } catch (e) {
         if (e instanceof Error) {
