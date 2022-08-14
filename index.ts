@@ -39,8 +39,7 @@ client.on('ready', async () => {
 
   const msg = await channel.messages.fetch({limit: 1}).then(coll => coll.first())
   if (msg === undefined) return
-  if (!msg.content.startsWith('Last updated')) return
-  if (client.user !== null && msg.author.id === client.user.id) {
+  if (msg.content.startsWith('Last updated') && client.user !== null && msg.author.id === client.user.id) {
     logger.logging('Auto restart checker.')
     await channel.send(`Auto restart checker.`)
     checker.start()
