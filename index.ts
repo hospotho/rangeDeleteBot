@@ -54,7 +54,7 @@ const commandDict: {[key: string]: Function} = {
 }
 
 const studioCommandDict: {[key: string]: Function} = {
-  checker: checker.handleCommand,
+  checker: checker.handleCommand.bind(checker),
   database: dbManger,
   db: dbManger,
   googlesheet: shReader,
