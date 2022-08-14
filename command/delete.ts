@@ -7,7 +7,6 @@ const logger = logStack.getLogger()
 export async function rangedelete(msg: Message) {
   const message = msg
   const channel = message.channel as TextChannel
-
   const args = message.content.split(' ')
 
   if (args.length !== 3) {
@@ -19,22 +18,20 @@ export async function rangedelete(msg: Message) {
   let msgID2 = args[2]
 
   if (isNaN(parseInt(msgID1)) || isNaN(parseInt(msgID2))) {
-    let msg = await channel.send(`Invaild messageID.`)
+    const msg = await channel.send(`Invaild messageID.`)
     //delete() must inside a function
     setTimeout(() => msg.delete(), 5000)
     return
   }
   if (msgID1 === msgID2) {
-    let msg = await channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
+    const msg = await channel.send(`MessageID(1) and MessageID(2) should not be the same.`)
     setTimeout(() => msg.delete(), 5000)
     return
   }
   if (BigInt(msgID1) > BigInt(msgID2)) {
-    let msg = await channel.send(`Message(1) is newer than Message(2).`)
+    ;[msgID1, msgID2] = [msgID2, msgID1]
+    const msg = await channel.send(`Message(1) is newer than Message(2).`)
     setTimeout(() => msg.delete(), 5000)
-    let temp = msgID1
-    msgID1 = msgID2
-    msgID2 = temp
   }
 
   async function fetch(_id: string, _ch: TextChannel = channel): Promise<Message | undefined> {
@@ -57,31 +54,31 @@ export async function rangedelete(msg: Message) {
 
   const msg1 = await fetch(msgID1)
   if (!msg1) {
-    let msg = await channel.send(`Message(1) ${msgID1} not found.`)
+    const msg = await channel.send(`Message(1) ${msgID1} not found.`)
     setTimeout(() => msg.delete(), 5000)
     return
   }
   const msg2 = await fetch(msgID2)
   if (!msg2) {
-    let msg = await channel.send(`Message(2) ${msgID2} not found.`)
+    const msg = await channel.send(`Message(2) ${msgID2} not found.`)
     setTimeout(() => msg.delete(), 5000)
     return
   }
 
   if (channel != msg1.channel || msg1.channel != msg2.channel) {
-    let msg = await channel.send(`Messages need to be in same channel.`)
+    const msg = await channel.send(`Messages need to be in same channel.`)
     setTimeout(() => msg.delete(), 5000)
     return
   }
 
-  let startTime = Date.now()
+  const startTime = Date.now()
   await message.delete()
   logger.logging(`Range delete start by ${message.author.username} at #${channel.name}`)
-  let botMsg = await channel.send(`Starting to delete messages from ${msgID1} to ${msgID2}.`)
-  let emoji = await channel.send(`<:gbf_makira_gun:685481376400932895>`)
+  const botMsg = await channel.send(`Starting to delete messages from ${msgID1} to ${msgID2}.`)
+  const emoji = await channel.send(`<:gbf_makira_gun:685481376400932895>`)
 
   const toDay = 1 / 1000 / 60 / 60 / 24
-  var count = 1
+  let count = 1
 
   let msgs = await channel.messages.fetch({
     before: msg2.id,
@@ -114,7 +111,7 @@ export async function rangedelete(msg: Message) {
     await Promise.all(msgs.map(msg => msg.delete()))
   }
 
-  let timeCost = msToMinSec(Date.now() - startTime)
+  const timeCost = msToMinSec(Date.now() - startTime)
   logger.logging(`Complete, ${count} messages deleted in ${timeCost}`)
   await botMsg.edit(`Complete, ${count} messages deleted in ${timeCost}`)
   setTimeout(() => {
