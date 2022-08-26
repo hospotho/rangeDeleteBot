@@ -35,7 +35,7 @@ export class crawler {
         'https://www.8591.com.tw/mobileGame-list.html?searchGame=35864&searchServer=&searchType=4&searchKey=&firstRow=40'
       ]
       const Wlist = ['閃火', '代打', '試煉', '競速', 'SS']
-      const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇', '青之女王', '5200', 'abs']
+      const Blist = ['代抽', '代練', '代刷', '共鬥', '肝弟', '地獄', '大蛇', '青之女王', '5200', 'abs', '廢龍', '鯊魚', '妖狐']
 
       const result: Array<string> = []
       const titleList: Array<string> = []
